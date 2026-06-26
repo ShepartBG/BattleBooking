@@ -4,9 +4,17 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BattleBooking | Airsoft Platform",
+  title: "BattleBooking.bg",
   description:
-    "Платформа за airsoft игрища, активни игри, регистрации, комплекти под наем, декларации и админ управление.",
+    "Система за airsoft игрища, активни игри, регистрации, комплекти под наем, декларации и админ управление.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-battlebooking.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favicon-battlebooking.png",
+  },
 };
 
 export default function RootLayout({

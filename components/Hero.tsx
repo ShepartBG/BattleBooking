@@ -40,7 +40,7 @@ export default function Hero({
   const hasSocials = Boolean(facebook || instagram || tiktok || phone);
 
   return (
-    <section className="group relative overflow-hidden rounded-[2.4rem] border border-lime-400/20 bg-black/70 p-4 shadow-[0_0_60px_rgba(0,0,0,0.55)] backdrop-blur-xl md:p-6">
+    <section className="group relative overflow-hidden rounded-[1.75rem] border border-lime-400/20 bg-black/70 p-4 sm:rounded-[2.4rem] shadow-[0_0_60px_rgba(0,0,0,0.55)] backdrop-blur-xl md:p-6">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-55 transition duration-700 group-hover:scale-[1.02]"
         style={{ backgroundImage: `url('${backgroundUrl}')` }}
@@ -49,7 +49,7 @@ export default function Hero({
       <div className="pointer-events-none absolute -right-20 -top-28 h-64 w-64 rounded-full bg-lime-400/10 blur-3xl transition duration-700 group-hover:bg-lime-400/16" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-lime-400/50 to-transparent" />
 
-      <div className="relative z-10 grid gap-5 md:grid-cols-[0.38fr_1.62fr] md:items-center">
+      <div className="relative z-10 grid gap-4 md:grid-cols-[0.38fr_1.62fr] md:items-center">
         <div className="flex items-center justify-center md:justify-start">
           <FieldLogoFrame src={fieldLogo} alt={fieldName} size="lg" fit={logoFit} scale={logoScale} x={logoX} y={logoY} />
         </div>
@@ -60,11 +60,11 @@ export default function Hero({
             BattleBooking Premium
           </div>
 
-          <p className="text-[10px] font-black uppercase tracking-[0.42em] text-zinc-400">
+          <p className="text-[9px] font-black uppercase tracking-[0.30em] sm:text-[10px] sm:tracking-[0.42em] text-zinc-400">
             {fieldName}
           </p>
 
-          <h1 className="mt-2 text-3xl font-black uppercase leading-[0.92] tracking-tight text-white md:text-5xl">
+          <h1 className="mt-2 text-[2.15rem] font-black uppercase leading-[0.92] tracking-tight text-white sm:text-4xl md:text-5xl">
             {title}
           </h1>
 
@@ -107,7 +107,7 @@ function SocialPill({ href, label, icon }: { href: string; label: string; icon: 
     <a
       href={normalized}
       target={normalized.startsWith("tel:") ? undefined : "_blank"}
-      className="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-black/40 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-lime-300 transition hover:bg-lime-400 hover:text-black"
+      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-lime-400/25 bg-black/40 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-lime-300 transition hover:bg-lime-400 hover:text-black"
     >
       <span className="grid h-5 w-5 place-items-center rounded-full bg-white/10 text-[11px] normal-case">
         {icon}
@@ -119,11 +119,11 @@ function SocialPill({ href, label, icon }: { href: string; label: string; icon: 
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur-md">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">
         {label}
       </p>
-      <p className="mt-1 text-sm font-black text-white">{value}</p>
+      <p className="mt-1 text-base font-black text-white">{value}</p>
     </div>
   );
 }

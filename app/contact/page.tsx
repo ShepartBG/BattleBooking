@@ -75,7 +75,7 @@ export default function ContactPage() {
           </h1>
           <p className="mt-6 text-lg leading-8 text-zinc-300">
             Тази страница е за връзка с BattleBooking — за организатори,
-            партньори, играчи и бъдещи клиенти.
+            партньори, играчи и клиенти.
           </p>
 
           <div className="mt-8 grid gap-3">

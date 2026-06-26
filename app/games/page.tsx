@@ -5,6 +5,7 @@ import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
 import { supabase } from "@/lib/supabase";
 import { useFieldSettings } from "@/lib/useFieldSettings";
+import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
   id: string;
@@ -27,10 +28,11 @@ export default function GamesPage() {
       const { data } = await supabase
         .from("games")
         .select("id,title,game_date,game_time,location,max_rental_sets,status")
-        .eq("status", "active")
+        .in("status", ["active", "postponed"])
+        .gte("game_date", new Date().toISOString().slice(0, 10))
         .order("game_date", { ascending: true });
 
-      setGames(data || []);
+      setGames((data || []).filter(isGameStillPublic));
       setLoading(false);
     }
 
@@ -68,6 +70,7 @@ export default function GamesPage() {
                 time={game.game_time}
                 location={game.location}
                 maxRentalSets={game.max_rental_sets}
+                status={game.status}
                 fieldName={fieldSettings.name}
                 fieldLogo={fieldSettings.logoUrl}
                 logoFit={fieldSettings.logoFit}

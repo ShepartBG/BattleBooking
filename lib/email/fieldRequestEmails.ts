@@ -6,8 +6,24 @@ export type EmailTemplate = {
   html: string;
 };
 
+export type FieldRequestOwnerDetails = {
+  fieldName: string;
+  ownerName: string;
+  city: string;
+  phone: string;
+  email: string;
+  website?: string | null;
+  facebook?: string | null;
+  instagram?: string | null;
+  tiktok?: string | null;
+  message?: string | null;
+};
+
 const BRAND_GREEN = "#95c900";
 const BRAND_GREEN_LIGHT = "#b7ef16";
+const CONTACT_EMAIL = process.env.BATTLEBOOKING_CONTACT_EMAIL || "battlebooking@abv.bg";
+const CONTACT_PHONE = process.env.BATTLEBOOKING_CONTACT_PHONE || "0897 047 668";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://battlebooking.bg";
 
 function buildEmailHtml({
   title,
@@ -49,7 +65,7 @@ function buildEmailHtml({
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border:1px solid rgba(149,201,0,0.25);border-radius:28px;overflow:hidden;background:#0b0b0b;">
             <tr>
               <td style="padding:28px;background:linear-gradient(135deg,rgba(149,201,0,0.25),rgba(0,0,0,0));border-bottom:1px solid rgba(255,255,255,0.08);">
-                <div style="color:${BRAND_GREEN_LIGHT};font-size:12px;font-weight:900;letter-spacing:3px;text-transform:uppercase;">BattleBooking</div>
+                <div style="display:inline-block;border:1px solid rgba(183,239,22,0.35);border-radius:999px;padding:8px 12px;color:${BRAND_GREEN_LIGHT};font-size:12px;font-weight:900;letter-spacing:3px;text-transform:uppercase;">BattleBooking</div>
                 <h1 style="margin:12px 0 0;color:#ffffff;font-size:32px;line-height:1.15;font-weight:900;">${escapeHtml(
                   title,
                 )}</h1>
@@ -66,7 +82,8 @@ function buildEmailHtml({
             </tr>
             <tr>
               <td style="padding:22px 28px;border-top:1px solid rgba(255,255,255,0.08);background:#080808;">
-                <p style="margin:0;color:#a1a1aa;font-size:13px;line-height:1.6;">Поздрави,<br><strong style="color:#ffffff;">Екипът на BattleBooking</strong></p>
+                <p style="margin:0;color:#a1a1aa;font-size:13px;line-height:1.7;">При въпроси или нужда от съдействие можете да се свържете с нас:<br><strong style="color:#ffffff;">Email:</strong> ${escapeHtml(CONTACT_EMAIL)}<br><strong style="color:#ffffff;">Телефон:</strong> ${escapeHtml(CONTACT_PHONE)}<br><strong style="color:#ffffff;">Сайт:</strong> ${escapeHtml(SITE_URL)}</p>
+                <p style="margin:16px 0 0;color:#a1a1aa;font-size:13px;line-height:1.6;">Поздрави,<br><strong style="color:#ffffff;">Екипът на BattleBooking</strong><br><span style="color:${BRAND_GREEN_LIGHT};font-weight:700;">Your Battle. Our Mission.</span></p>
                 <p style="margin:14px 0 0;color:#71717a;font-size:12px;line-height:1.6;">Този email е изпратен автоматично от BattleBooking.</p>
               </td>
             </tr>
@@ -78,32 +95,73 @@ function buildEmailHtml({
 </html>`;
 }
 
+function withContactFooter(body: string) {
+  return `${body}
+
+Ако имате въпроси или се нуждаете от съдействие, можете да се свържете с нас:
+Email: ${CONTACT_EMAIL}
+Телефон: ${CONTACT_PHONE}
+Сайт: ${SITE_URL}
+
+Поздрави,
+Екипът на BattleBooking
+Your Battle. Our Mission.`;
+}
+
 export function fieldRequestReceivedEmail(fieldName: string): EmailTemplate {
   const safeName = fieldName || "Вашето игрище";
-  const body = `Здравейте,
+  const body = withContactFooter(`Здравейте,
 
 Благодарим Ви, че заявихте достъп до BattleBooking за ${safeName}.
 
 Получихме Вашата заявка и нашият екип ще я разгледа възможно най-скоро.
 
-След като прегледаме информацията за Вашето игрище, ще се свържем с Вас с повече подробности относно следващите стъпки, активирането на профила и условията за използване на платформата.
-
-Поздрави,
-Екипът на BattleBooking`;
+След като прегледаме информацията за Вашето игрище, ще се свържем с Вас с повече подробности относно следващите стъпки и активирането на профила.`);
 
   return {
-    subject: "Получихме заявката Ви за BattleBooking",
+    subject: "Получихме заявката Ви за BattleBooking ✅",
     body,
     html: buildEmailHtml({
       title: "Получихме заявката Ви",
       intro: `Заявката за ${safeName} е приета за преглед.`,
-      body: `Здравейте,
+      body,
+    }),
+  };
+}
 
-Благодарим Ви, че заявихте достъп до BattleBooking за ${safeName}.
+export function fieldRequestOwnerNotificationEmail(
+  details: FieldRequestOwnerDetails,
+): EmailTemplate {
+  const adminUrl = `${SITE_URL.replace(/\/$/, "")}/admin/requests`;
+  const rows = [
+    `Игрище: ${details.fieldName}`,
+    `Организатор: ${details.ownerName}`,
+    `Локация: ${details.city}`,
+    `Телефон: ${details.phone}`,
+    `Email: ${details.email}`,
+    details.website ? `Website: ${details.website}` : "",
+    details.facebook ? `Facebook: ${details.facebook}` : "",
+    details.instagram ? `Instagram: ${details.instagram}` : "",
+    details.tiktok ? `TikTok: ${details.tiktok}` : "",
+    details.message ? `Описание: ${details.message}` : "Описание: няма",
+  ].filter(Boolean);
 
-Получихме Вашата заявка и нашият екип ще я разгледа възможно най-скоро.
+  const body = `Нова заявка за достъп до BattleBooking.
 
-След като прегледаме информацията за Вашето игрище, ще се свържем с Вас с повече подробности относно следващите стъпки, активирането на профила и условията за използване на платформата.`,
+${rows.join("\n")}
+
+Можеш да я прегледаш от Owner панела:
+${adminUrl}`;
+
+  return {
+    subject: `Нова заявка за достъп: ${details.fieldName}`,
+    body,
+    html: buildEmailHtml({
+      title: "Нова заявка за достъп",
+      intro: `${details.fieldName} изпрати заявка към BattleBooking.`,
+      body,
+      ctaLabel: "Отвори заявките",
+      ctaUrl: adminUrl,
     }),
   };
 }
@@ -114,50 +172,60 @@ export function fieldRequestDecisionEmail(
 ): EmailTemplate {
   const safeName = fieldName || "Вашето игрище";
 
-  if (status === "active" || status === "payment_pending") {
-    const body = `Здравейте,
+  if (status === "active") {
+    const body = withContactFooter(`Здравейте,
 
-Поздравления!
+Благодарим Ви за проявения интерес към BattleBooking.
 
-Вашата заявка за достъп до BattleBooking за ${safeName} беше одобрена.
+Поздравления! Вашата заявка за достъп до BattleBooking за ${safeName} беше одобрена.
 
-Следващата стъпка е активиране на Вашия организаторски профил. Нашият екип ще се свърже с Вас, за да уточним финалните детайли, начина на плащане и стартирането на Вашето игрище в платформата.
+Вашето игрище вече може да бъде активирано в платформата. Нашият екип ще се свърже с Вас, за да уточним финалните детайли и стартирането на профила.
 
-Очакваме с нетърпение да работим заедно.
-
-Поздрави,
-Екипът на BattleBooking`;
+Очакваме с нетърпение да работим заедно.`);
 
     return {
-      subject: "Вашата заявка за BattleBooking е одобрена",
+      subject: "Вашата заявка за BattleBooking е одобрена ✅",
       body,
       html: buildEmailHtml({
         title: "Заявката Ви е одобрена",
         intro: `${safeName} е одобрено за BattleBooking.`,
-        body: `Здравейте,
+        body,
+        ctaLabel: "Вход в BattleBooking",
+        ctaUrl: `${SITE_URL.replace(/\/$/, "")}/login`,
+      }),
+    };
+  }
 
-Поздравления!
+  if (status === "payment_pending") {
+    const body = withContactFooter(`Здравейте,
 
-Вашата заявка за достъп до BattleBooking за ${safeName} беше одобрена.
+Благодарим Ви за проявения интерес към BattleBooking.
 
-Следващата стъпка е активиране на Вашия организаторски профил. Нашият екип ще се свърже с Вас, за да уточним финалните детайли, начина на плащане и стартирането на Вашето игрище в платформата.
+Вашата заявка за ${safeName} е прегледана успешно и преминава към следваща стъпка.
 
-Очакваме с нетърпение да работим заедно.`,
+Към момента очакваме финално потвърждение и активиране на достъпа. Нашият екип ще се свърже с Вас, за да уточним необходимите детайли.`);
+
+    return {
+      subject: "Заявката Ви за BattleBooking преминава към следваща стъпка",
+      body,
+      html: buildEmailHtml({
+        title: "Заявката преминава към следваща стъпка",
+        intro: `${safeName} е прегледано от екипа на BattleBooking.`,
+        body,
       }),
     };
   }
 
   if (status === "rejected") {
-    const body = `Здравейте,
+    const body = withContactFooter(`Здравейте,
 
-Благодарим Ви за интереса към BattleBooking.
+Благодарим Ви, че проявихте интерес към BattleBooking и отделихте време да изпратите заявка за достъп.
 
 След преглед на подадената информация за ${safeName}, на този етап не можем да активираме достъп за Вашето игрище.
 
-Това не означава, че възможността е окончателно затворена. При промяна на обстоятелствата или при допълнителна информация, можете да се свържете отново с нас.
+Това решение не означава, че възможността е окончателно затворена. При промяна на обстоятелствата или при допълнителна информация, винаги можете да се свържете с нас.
 
-Поздрави,
-Екипът на BattleBooking`;
+Благодарим Ви още веднъж и Ви пожелаваме успешен сезон.`);
 
     return {
       subject: "Отговор относно заявката Ви за BattleBooking",
@@ -165,26 +233,17 @@ export function fieldRequestDecisionEmail(
       html: buildEmailHtml({
         title: "Отговор относно заявката Ви",
         intro: `Прегледахме заявката за ${safeName}.`,
-        body: `Здравейте,
-
-Благодарим Ви за интереса към BattleBooking.
-
-След преглед на подадената информация за ${safeName}, на този етап не можем да активираме достъп за Вашето игрище.
-
-Това не означава, че възможността е окончателно затворена. При промяна на обстоятелствата или при допълнителна информация, можете да се свържете отново с нас.`,
+        body,
       }),
     };
   }
 
   if (status === "suspended") {
-    const body = `Здравейте,
+    const body = withContactFooter(`Здравейте,
 
 Достъпът до BattleBooking за ${safeName} е временно спрян.
 
-Можете да се свържете с нашия екип за повече информация.
-
-Поздрави,
-Екипът на BattleBooking`;
+Можете да се свържете с нашия екип за повече информация и съдействие.`);
 
     return {
       subject: "BattleBooking: достъпът е временно спрян",
@@ -192,11 +251,7 @@ export function fieldRequestDecisionEmail(
       html: buildEmailHtml({
         title: "Достъпът е временно спрян",
         intro: `Достъпът за ${safeName} е временно спрян.`,
-        body: `Здравейте,
-
-Достъпът до BattleBooking за ${safeName} е временно спрян.
-
-Можете да се свържете с нашия екип за повече информация.`,
+        body,
       }),
     };
   }

@@ -23,6 +23,13 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background: #020402;
@@ -147,4 +154,16 @@ textarea {
   padding: 0.5rem 1rem;
   font-weight: 800;
   transition: 160ms ease;
+}
+
+
+.bb-mobile-title {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 640px) {
+  .bb-page-bg {
+    background-attachment: scroll;
+  }
 }

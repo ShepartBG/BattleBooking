@@ -20,6 +20,12 @@ function toInputDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+const gameTimeOptions = Array.from({ length: 48 }, (_, index) => {
+  const hour = String(Math.floor(index / 2)).padStart(2, "0");
+  const minute = index % 2 === 0 ? "00" : "30";
+  return `${hour}:${minute}`;
+});
+
 export default function NewGamePage() {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -108,29 +114,7 @@ export default function NewGamePage() {
               defaultValue="11:00"
               required
             >
-              {[
-                "10:00",
-                "10:30",
-                "11:00",
-                "11:30",
-                "12:00",
-                "12:30",
-                "13:00",
-                "13:30",
-                "14:00",
-                "14:30",
-                "15:00",
-                "15:30",
-                "16:00",
-                "16:30",
-                "17:00",
-                "17:30",
-                "18:00",
-                "18:30",
-                "19:00",
-                "19:30",
-                "20:00",
-              ].map((time) => (
+              {gameTimeOptions.map((time) => (
                 <option key={time} value={time}>
                   {time}
                 </option>
@@ -184,6 +168,7 @@ export default function NewGamePage() {
             >
               <option value="active">Активна</option>
               <option value="closed">Затворена</option>
+              <option value="postponed">Отложена</option>
             </select>
           </Field>
 

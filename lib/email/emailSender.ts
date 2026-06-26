@@ -10,9 +10,13 @@ export type SendEmailResult = {
   skipped?: boolean;
   message: string;
   id?: string;
+  status?: number;
+  payload?: unknown;
 };
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const DEFAULT_FROM = "BattleBooking <noreply@battlebooking.bg>";
+const DEFAULT_REPLY_TO = "battlebooking@abv.bg";
 
 export async function sendBattleBookingEmail({
   to,
@@ -31,10 +35,8 @@ export async function sendBattleBookingEmail({
     };
   }
 
-  const from =
-    process.env.BATTLEBOOKING_EMAIL_FROM ||
-    "BattleBooking <onboarding@resend.dev>";
-  const replyTo = process.env.BATTLEBOOKING_EMAIL_REPLY_TO || undefined;
+  const from = process.env.BATTLEBOOKING_EMAIL_FROM || DEFAULT_FROM;
+  const replyTo = process.env.BATTLEBOOKING_EMAIL_REPLY_TO || DEFAULT_REPLY_TO;
 
   const response = await fetch(RESEND_ENDPOINT, {
     method: "POST",
@@ -57,6 +59,8 @@ export async function sendBattleBookingEmail({
   if (!response.ok) {
     return {
       ok: false,
+      status: response.status,
+      payload,
       message:
         payload?.message ||
         payload?.error ||
@@ -66,6 +70,8 @@ export async function sendBattleBookingEmail({
 
   return {
     ok: true,
+    status: response.status,
+    payload,
     message: "Email-ът е изпратен успешно.",
     id: payload?.id,
   };

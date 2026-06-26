@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import {
@@ -34,13 +34,6 @@ export default function SettingsPage() {
       localStorage.removeItem(FIELD_SETTINGS_STORAGE_KEY);
     }
   }, []);
-
-  const socialLinksCount = useMemo(
-    () =>
-      [settings.facebook, settings.instagram, settings.tiktok].filter(Boolean)
-        .length,
-    [settings],
-  );
 
   function updateField(key: keyof FieldSettings, value: string) {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -92,7 +85,7 @@ export default function SettingsPage() {
       alert("Настройките са запазени успешно.");
     } catch {
       alert(
-        "Снимките са прекалено големи за локално запазване. Пробвай с по-малки файлове. По-късно ще го вържем към Supabase Storage.",
+        "Снимките са прекалено големи за локално запазване. Пробвай с по-малки файлове.",
       );
     }
   }
@@ -320,10 +313,9 @@ export default function SettingsPage() {
                   {settings.description}
                 </p>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <Mini label="Собствено" value={settings.ownPrice} />
                   <Mini label="Под наем" value={settings.rentalPrice} />
-                  <Mini label="Социални" value={String(socialLinksCount)} />
                 </div>
               </div>
             </div>

@@ -14,6 +14,7 @@ import NoActiveGame from "@/components/home/NoActiveGame";
 import RulesModal from "@/components/home/RulesModal";
 import PublicShell from "@/components/public/PublicShell";
 import { useFieldSettings } from "@/lib/useFieldSettings";
+import { isGameStillPublic } from "@/lib/gameVisibility";
 
 const DAILY_BROWSER_REGISTRATION_MS = 24 * 60 * 60 * 1000;
 
@@ -27,6 +28,7 @@ type Game = {
   rules_text: string;
   rules_version: string;
   status: string;
+  postponed_reason?: string | null;
 };
 
 function getDailyRegistrationKey(gameId: string) {
@@ -214,7 +216,17 @@ export default function PublicGamePage() {
     );
   }
 
-  if (!game || game.status !== "active") {
+  if (!game) {
+    return (
+      <PublicShell>
+        <NoActiveGame />
+      </PublicShell>
+    );
+  }
+
+  const isPostponed = game.status === "postponed";
+
+  if (!isGameStillPublic(game)) {
     return (
       <PublicShell>
         <NoActiveGame />
@@ -244,28 +256,35 @@ export default function PublicGamePage() {
             logoY={fieldSettings.logoY}
         />
 
-        <div className="grid gap-4 lg:grid-cols-[1.45fr_0.9fr] lg:items-start">
-          <RegistrationForm
-            loading={loading}
-            freeRentalSets={freeRentalSets}
-            rulesRead={rulesRead}
-            acceptedRules={acceptedRules}
-            onSubmit={handleSubmit}
-            onOpenRules={() => setShowRules(true)}
-            onAcceptedRulesChange={setAcceptedRules}
-          />
-
-          <LiveInfoPanel
-            totalPlayers={totalPlayers}
-            rentalPlayers={rentalPlayers}
-            ownPlayers={ownPlayers}
-            freeRentalSets={freeRentalSets}
-            location={game.location}
-            ownPrice={fieldSettings.ownPrice}
-            rentalPrice={fieldSettings.rentalPrice}
+        {isPostponed ? (
+          <PostponedGameNotice
+            reason={game.postponed_reason}
             phone={fieldSettings.phone}
           />
-        </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[1.45fr_0.9fr] lg:items-start">
+            <RegistrationForm
+              loading={loading}
+              freeRentalSets={freeRentalSets}
+              rulesRead={rulesRead}
+              acceptedRules={acceptedRules}
+              onSubmit={handleSubmit}
+              onOpenRules={() => setShowRules(true)}
+              onAcceptedRulesChange={setAcceptedRules}
+            />
+
+            <LiveInfoPanel
+              totalPlayers={totalPlayers}
+              rentalPlayers={rentalPlayers}
+              ownPlayers={ownPlayers}
+              freeRentalSets={freeRentalSets}
+              location={game.location}
+              ownPrice={fieldSettings.ownPrice}
+              rentalPrice={fieldSettings.rentalPrice}
+              phone={fieldSettings.phone}
+            />
+          </div>
+        )}
 
         <StatsCards
           totalPlayers={totalPlayers}
@@ -295,5 +314,51 @@ export default function PublicGamePage() {
         )}
       </div>
     </PublicShell>
+  );
+}
+
+
+function PostponedGameNotice({
+  reason,
+  phone,
+}: {
+  reason?: string | null;
+  phone?: string;
+}) {
+  const finalReason =
+    reason?.trim() || "Играта се отлага поради организационни причини.";
+
+  return (
+    <section className="rounded-[2rem] border-2 border-red-500/45 bg-red-950/40 p-6 text-center shadow-[0_0_60px_rgba(239,68,68,0.20)] backdrop-blur-xl md:p-10">
+      <div className="mx-auto max-w-3xl">
+        <p className="text-5xl font-black uppercase leading-none text-red-500 md:text-7xl">
+          🚨 ИГРАТА СЕ ОТЛАГА
+        </p>
+
+        <div className="mt-6 rounded-[1.5rem] border border-red-400/30 bg-black/45 p-5">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-red-300">
+            Причина
+          </p>
+          <p className="mt-3 text-xl font-black text-white">{finalReason}</p>
+        </div>
+
+        <p className="mt-6 text-lg leading-8 text-zinc-200">
+          За повече информация се свържете с организатора на посочения телефон.
+        </p>
+
+        {phone ? (
+          <a
+            href={`tel:${phone.replace(/\s/g, "")}`}
+            className="mt-5 inline-flex rounded-2xl bg-red-600 px-7 py-4 text-xl font-black text-white transition hover:bg-red-500"
+          >
+            📞 {phone}
+          </a>
+        ) : (
+          <p className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-4 font-bold text-zinc-300">
+            Телефонът на организатора ще бъде обявен допълнително.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }

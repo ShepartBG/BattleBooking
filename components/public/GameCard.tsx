@@ -1,5 +1,7 @@
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 
+type GameStatus = "active" | "closed" | "postponed" | string;
+
 type GameCardProps = {
   id: string;
   title: string;
@@ -7,6 +9,7 @@ type GameCardProps = {
   time: string;
   location: string;
   maxRentalSets: number;
+  status?: GameStatus;
   fieldName?: string;
   fieldLogo?: string;
   logoFit?: "contain" | "cover";
@@ -21,6 +24,33 @@ function formatDate(date: string) {
   return `${day}.${month}.${year}`;
 }
 
+function getStatusView(status: GameStatus) {
+  if (status === "postponed") {
+    return {
+      label: "ОТЛОЖЕНА",
+      className: "border-red-500/50 bg-red-500/15 text-red-300",
+      button: "Виж информация",
+      buttonClass: "bg-red-600 text-white hover:bg-red-500",
+    };
+  }
+
+  if (status === "closed") {
+    return {
+      label: "ЗАТВОРЕНА",
+      className: "border-zinc-500/35 bg-zinc-500/10 text-zinc-300",
+      button: "Виж играта",
+      buttonClass: "bg-zinc-700 text-white hover:bg-zinc-600",
+    };
+  }
+
+  return {
+    label: "ОТВОРЕНА",
+    className: "border-[#95c900]/35 bg-[#95c900]/10 text-[#b7ef16]",
+    button: "Запиши се",
+    buttonClass: "bg-[#95c900] text-black hover:bg-[#b7ef16]",
+  };
+}
+
 export default function GameCard({
   id,
   title,
@@ -28,6 +58,7 @@ export default function GameCard({
   time,
   location,
   maxRentalSets,
+  status = "active",
   fieldName = "Airsoft Field Warzone",
   fieldLogo = "/warzone-logo.png",
   logoFit = "contain",
@@ -35,21 +66,35 @@ export default function GameCard({
   logoX = 0,
   logoY = 0,
 }: GameCardProps) {
+  const statusView = getStatusView(status);
+
   return (
-    <article className="rounded-[2rem] border border-white/10 bg-black/60 p-5 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#95c900]/45 hover:shadow-[0_0_55px_rgba(149,201,0,0.14)]">
+    <article className={`rounded-[1.75rem] border bg-black/60 p-4 sm:rounded-[2rem] sm:p-5 backdrop-blur-xl transition duration-300 hover:-translate-y-1 ${
+      status === "postponed"
+        ? "border-red-500/25 hover:border-red-400/55 hover:shadow-[0_0_55px_rgba(239,68,68,0.14)]"
+        : "border-white/10 hover:border-[#95c900]/45 hover:shadow-[0_0_55px_rgba(149,201,0,0.14)]"
+    }`}>
       <div className="flex items-center gap-3">
         <FieldLogoFrame src={fieldLogo} alt={fieldName} size="sm" fit={logoFit} scale={logoScale} x={logoX} y={logoY} />
         <div className="min-w-0">
-          <span className="inline-flex rounded-full border border-[#95c900]/35 bg-[#95c900]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#b7ef16]">
-            ОТВОРЕНА
+          <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${statusView.className}`}>
+            {statusView.label}
           </span>
           <p className="mt-2 truncate text-sm font-black text-white">{fieldName}</p>
         </div>
       </div>
 
-      <h3 className="mt-5 text-2xl font-black text-white">{title}</h3>
+      <h3 className="mt-5 text-2xl font-black leading-tight text-white">{title}</h3>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold text-zinc-300">
+      {status === "postponed" && (
+        <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+          <p className="text-xl font-black uppercase tracking-tight text-red-300">
+            🚨 ИГРАТА СЕ ОТЛАГА
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-1 gap-2 text-sm font-bold text-zinc-300 min-[420px]:grid-cols-2">
         <Info label="Дата" value={`📅 ${formatDate(date)}`} />
         <Info label="Час" value={`🕒 ${time?.slice(0, 5)}`} />
         <Info label="Локация" value={`📍 ${location}`} />
@@ -58,9 +103,9 @@ export default function GameCard({
 
       <a
         href={`/game/${id}`}
-        className="mt-5 block rounded-2xl bg-[#95c900] px-4 py-3 text-center font-black text-black transition hover:bg-[#b7ef16]"
+        className={`mt-5 block min-h-12 rounded-2xl px-4 py-3.5 text-center font-black transition ${statusView.buttonClass}`}
       >
-        Запиши се
+        {statusView.button}
       </a>
     </article>
   );
@@ -68,11 +113,11 @@ export default function GameCard({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
       <p className="text-[10px] font-black uppercase tracking-[0.20em] text-zinc-500">
         {label}
       </p>
-      <p className="mt-1 text-xs text-white">{value}</p>
+      <p className="mt-1 text-sm text-white">{value}</p>
     </div>
   );
 }
