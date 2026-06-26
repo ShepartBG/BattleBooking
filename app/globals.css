@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+:root {
+  --background: #030604;
+  --foreground: #f4f4f5;
+  --bb-green: #95c900;
+  --bb-green-dark: #3c4b16;
+  --bb-panel: rgba(0, 0, 0, 0.62);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #020402;
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(149, 201, 0, 0.35);
+  color: white;
+}
+
+.bb-page-bg {
+  background-image:
+    linear-gradient(rgba(3, 8, 3, 0.18), rgba(0, 0, 0, 0.92)),
+    url('/battlebooking-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.bb-panel {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 55px rgba(0, 0, 0, 0.42);
+}
+
+.bb-glow {
+  box-shadow: 0 0 45px rgba(149, 201, 0, 0.18);
+}
+
+.bb-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bb-scrollbar::-webkit-scrollbar-track {
+  background: rgba(24, 24, 27, 0.6);
+  border-radius: 999px;
+}
+
+.bb-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(149, 201, 0, 0.45);
+  border-radius: 999px;
+}
+
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.bb-input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.55);
+  padding: 0.9rem 1rem;
+  color: white;
+  outline: none;
+}
+
+.bb-input:focus {
+  border-color: rgba(149,201,0,0.85);
+  box-shadow: 0 0 0 2px rgba(149,201,0,0.16);
+}
+
+.bb-input::placeholder {
+  color: rgb(113 113 122);
+}
+
+.react-datepicker {
+  border: 1px solid rgba(149, 201, 0, 0.25) !important;
+  border-radius: 1.25rem !important;
+  overflow: hidden;
+  background: #050805 !important;
+  color: white !important;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45) !important;
+}
+
+.react-datepicker__header {
+  background: #080d07 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header,
+.react-datepicker__day-name,
+.react-datepicker__day {
+  color: white !important;
+}
+
+.react-datepicker__day:hover,
+.react-datepicker__month-text:hover,
+.react-datepicker__quarter-text:hover,
+.react-datepicker__year-text:hover {
+  background: rgba(149, 201, 0, 0.18) !important;
+  border-radius: 0.75rem !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: #95c900 !important;
+  color: black !important;
+  border-radius: 0.75rem !important;
+  font-weight: 900 !important;
+}
+
+.react-datepicker-popper {
+  z-index: 80 !important;
+}
+
+.admin-action {
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 800;
+  transition: 160ms ease;
+}
