@@ -179,9 +179,7 @@ export function fieldRequestDecisionEmail(
   const loginUrl = approval?.loginUrl || `${SITE_URL.replace(/\/$/, "")}/login`;
 
   if (status === "active") {
-    const resetLine = approval?.resetUrl
-      ? `За да зададете парола, отворете този линк: ${approval.resetUrl}`
-      : `Можете да влезете от: ${loginUrl}`;
+    const loginLine = `Можете да влезете още сега от: ${loginUrl}`;
 
     const mainBody = `Здравейте,
 
@@ -193,7 +191,11 @@ export function fieldRequestDecisionEmail(
 
 След тази дата имате 7 дни гратисен срок за подновяване на плащането: до ${formatBgDate(approval?.graceUntil)}.
 
-${resetLine}
+${loginLine}
+
+Влизате с email-а и паролата, които посочихте при заявката за достъп.
+
+Ако някога забравите паролата си, използвайте бутона "Забравена парола" от страницата за вход.
 
 Очакваме с нетърпение да работим заедно.`;
 
@@ -204,8 +206,8 @@ ${resetLine}
         title: "Акаунтът Ви е одобрен",
         intro: `${safeName} вече има активиран BattleBooking достъп.`,
         body: mainBody,
-        ctaLabel: approval?.resetUrl ? "Задай парола" : "Вход в BattleBooking",
-        ctaUrl: approval?.resetUrl || loginUrl,
+        ctaLabel: "Вход в BattleBooking",
+        ctaUrl: loginUrl,
       }),
     };
   }

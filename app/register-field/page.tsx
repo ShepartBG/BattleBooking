@@ -15,6 +15,8 @@ export default function RegisterFieldPage() {
   const [alert, setAlert] = useState<FormAlert | null>(null);
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,6 +32,8 @@ export default function RegisterFieldPage() {
     const email = String(formData.get("email") || "")
       .trim()
       .toLowerCase();
+    const password = String(formData.get("password") || "");
+    const repeatPassword = String(formData.get("repeat_password") || "");
     const website = String(formData.get("website") || "").trim();
     const facebook = String(formData.get("facebook") || "").trim();
     const instagram = String(formData.get("instagram") || "").trim();
@@ -42,6 +46,8 @@ export default function RegisterFieldPage() {
       city,
       phone,
       email,
+      password,
+      repeatPassword,
       website,
       facebook,
       instagram,
@@ -85,6 +91,7 @@ export default function RegisterFieldPage() {
       email,
       phone,
       city,
+      requested_password: password,
       website: website || null,
       facebook: facebook || null,
       instagram: instagram || null,
@@ -276,6 +283,57 @@ export default function RegisterFieldPage() {
               </Field>
             </div>
 
+            <div className="rounded-2xl border border-[#95c900]/20 bg-[#95c900]/5 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#b7ef16]">
+                Login парола
+              </p>
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                Избери парола още сега. След одобрение ще можеш да влезеш директно с този email и тази парола.
+              </p>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Field label="Парола *">
+                  <div className="relative">
+                    <input
+                      name="password"
+                      className="bb-input pr-24"
+                      type={showPassword ? "text" : "password"}
+                      minLength={6}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+                    >
+                      {showPassword ? "Скрий" : "Покажи"}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label="Повтори паролата *">
+                  <div className="relative">
+                    <input
+                      name="repeat_password"
+                      className="bb-input pr-24"
+                      type={showRepeatPassword ? "text" : "password"}
+                      minLength={6}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRepeatPassword((current) => !current)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+                    >
+                      {showRepeatPassword ? "Скрий" : "Покажи"}
+                    </button>
+                  </div>
+                </Field>
+              </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Website">
                 <input
@@ -412,6 +470,8 @@ function validateRequest(data: {
   city: string;
   phone: string;
   email: string;
+  password: string;
+  repeatPassword: string;
   website: string;
   facebook: string;
   instagram: string;
@@ -424,6 +484,10 @@ function validateRequest(data: {
   if (!isValidBgPhone(data.phone))
     return "Заявката не беше приета. Въведи валиден български мобилен номер с 10 цифри. Пример: 0897047668.";
   if (!isValidEmail(data.email)) return "Моля, въведи валиден email адрес.";
+  if (!data.password || data.password.length < 6)
+    return "Паролата трябва да бъде поне 6 символа.";
+  if (data.password !== data.repeatPassword)
+    return "Двете пароли не съвпадат.";
 
   const links = [
     data.website,
