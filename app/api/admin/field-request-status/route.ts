@@ -12,6 +12,12 @@ const allowedStatuses: FieldRequestStatus[] = [
   "rejected",
 ];
 
+function randomPassword() {
+  const part = Math.random().toString(36).slice(2);
+  const part2 = Math.random().toString(36).slice(2);
+  return `BB-${part}-${part2}-2026!`;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -42,34 +48,21 @@ export async function POST(request: Request) {
 
     const email = String(fieldRequest.email || "").trim().toLowerCase();
     const fieldName = String(fieldRequest.field_name || "Вашето игрище").trim();
-    const requestedPassword = String(fieldRequest.requested_password || "");
-
     const updatePayload: Record<string, unknown> = {
       status,
       access_status: status,
       reviewed_at: new Date().toISOString(),
     };
 
+    let resetUrl: string | null = null;
     let dates: ReturnType<typeof buildTrialDates> | null = null;
 
     if (status === "active") {
-      if (!requestedPassword || requestedPassword.length < 6) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message:
-              "Заявката няма валидна парола. Помоли организатора да подаде нова заявка с парола.",
-          },
-          { status: 400 },
-        );
-      }
-
       dates = buildTrialDates();
       updatePayload.trial_started_at = dates.trialStartedAt;
       updatePayload.subscription_valid_until = dates.subscriptionValidUntil;
       updatePayload.grace_until = dates.graceUntil;
       updatePayload.access_blocked_reason = null;
-      updatePayload.requested_password = null;
 
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({
         page: 1,
@@ -80,30 +73,10 @@ export async function POST(request: Request) {
         (user) => user.email?.trim().toLowerCase() === email,
       );
 
-      if (existingUser) {
-        const { error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(
-          existingUser.id,
-          {
-            password: requestedPassword,
-            email_confirm: true,
-            user_metadata: {
-              ...(existingUser.user_metadata || {}),
-              field_request_id: requestId,
-              field_name: fieldName,
-            },
-          },
-        );
-
-        if (updateUserError) {
-          return NextResponse.json(
-            { ok: false, message: "Не успях да обновя login акаунта: " + updateUserError.message },
-            { status: 500 },
-          );
-        }
-      } else {
+      if (!existingUser) {
         const { error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
-          password: requestedPassword,
+          password: randomPassword(),
           email_confirm: true,
           user_metadata: {
             field_request_id: requestId,
@@ -118,6 +91,19 @@ export async function POST(request: Request) {
           );
         }
       }
+
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://battlebooking.bg";
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: {
+          redirectTo: `${siteUrl.replace(/\/$/, "")}/reset-password`,
+        },
+      });
+
+      if (!linkError) {
+        resetUrl = linkData.properties?.action_link || null;
+      }
     }
 
     if (status === "suspended") {
@@ -126,6 +112,7 @@ export async function POST(request: Request) {
     }
 
     const template = fieldRequestDecisionEmail(status, fieldName, {
+      resetUrl,
       subscriptionValidUntil: dates?.subscriptionValidUntil || fieldRequest.subscription_valid_until,
       graceUntil: dates?.graceUntil || fieldRequest.grace_until,
     });

@@ -8,10 +8,7 @@ export function isOwnerEmail(email?: string | null) {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  if (OWNER_EMAILS.length === 0) {
-    // Beta fallback: if no owner emails are configured yet, keep the current admin usable.
-    return true;
-  }
+  if (OWNER_EMAILS.length === 0) return false;
 
   return OWNER_EMAILS.includes(normalizedEmail);
 }

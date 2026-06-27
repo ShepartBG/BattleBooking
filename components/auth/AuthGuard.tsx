@@ -12,7 +12,7 @@ function isOwner(email: string) {
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 
-  return ownerEmails.length === 0 || ownerEmails.includes(email.trim().toLowerCase());
+  return ownerEmails.includes(email.trim().toLowerCase());
 }
 
 async function checkOrganizerAccess(email: string) {

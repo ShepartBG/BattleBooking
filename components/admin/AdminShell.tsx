@@ -1,11 +1,12 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import PublicNav from "@/components/public/PublicNav";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { isOwnerEmail } from "@/lib/access";
 
 type Props = {
   active: "games" | "new-game" | "settings" | "requests";
@@ -22,6 +23,28 @@ const adminLinks = [
 export default function AdminShell({ active, children }: Props) {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRole() {
+      const { data } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setIsOwner(isOwnerEmail(data.user?.email || ""));
+    }
+
+    loadRole();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const visibleAdminLinks = useMemo(
+    () => adminLinks.filter((link) => link.key !== "requests" || isOwner),
+    [isOwner],
+  );
 
   async function signOut() {
     setIsSigningOut(true);
@@ -46,7 +69,7 @@ export default function AdminShell({ active, children }: Props) {
             </div>
 
             <nav className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold text-zinc-300 sm:grid-cols-4 lg:mt-8 lg:block lg:space-y-2">
-              {adminLinks.map((link) => (
+              {visibleAdminLinks.map((link) => (
                 <a
                   key={link.key}
                   className={`flex min-h-12 items-center justify-center rounded-2xl px-3 py-3 text-center transition lg:block lg:text-left ${
@@ -75,7 +98,7 @@ export default function AdminShell({ active, children }: Props) {
 
         <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/86 px-2 py-2 backdrop-blur-2xl lg:hidden">
           <div className="mx-auto grid max-w-xl grid-cols-4 gap-2 text-[11px] font-black text-zinc-300">
-            {adminLinks.map((link) => (
+            {visibleAdminLinks.map((link) => (
               <a
                 key={link.key}
                 href={link.href}

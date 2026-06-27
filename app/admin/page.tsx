@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
+import { isOwnerEmail } from "@/lib/access";
 
 type Game = {
   id: string;
@@ -24,6 +25,7 @@ function formatDate(date: string) {
 export default function AdminPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [isOwner, setIsOwner] = useState(false);
 
   async function loadPendingRequests() {
     const { count, error } = await supabase
@@ -112,8 +114,15 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    loadGames();
-    loadPendingRequests();
+    async function loadDashboard() {
+      const { data } = await supabase.auth.getUser();
+      const owner = isOwnerEmail(data.user?.email || "");
+      setIsOwner(owner);
+      await loadGames();
+      if (owner) await loadPendingRequests();
+    }
+
+    loadDashboard();
   }, []);
 
   const activeGames = games.filter((game) => game.status === "active").length;
@@ -133,12 +142,14 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-2 sm:flex sm:flex-row">
-              <a
-                href="/admin/requests"
-                className="min-h-12 rounded-2xl border border-lime-400/25 bg-lime-400/10 px-5 py-3 text-center font-black text-lime-200 hover:bg-lime-400/15"
-              >
-                🔔 New Requests ({pendingRequests})
-              </a>
+              {isOwner && (
+                <a
+                  href="/admin/requests"
+                  className="min-h-12 rounded-2xl border border-lime-400/25 bg-lime-400/10 px-5 py-3 text-center font-black text-lime-200 hover:bg-lime-400/15"
+                >
+                  🔔 New Requests ({pendingRequests})
+                </a>
+              )}
               <a
                 href="/admin/new-game"
                 className="min-h-12 rounded-2xl bg-lime-500 px-5 py-3 text-center font-black text-black hover:bg-lime-400"

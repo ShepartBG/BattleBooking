@@ -20,25 +20,25 @@ export type FieldSettings = {
 };
 
 export const DEFAULT_FIELD_SETTINGS: FieldSettings = {
-  name: "Airsoft Field Warzone",
-  slug: "warzone",
-  region: "Враца",
-  settlement: "с. Бутан",
-  location: "с. Бутан, област Враца",
+  name: "BattleBooking Arena",
+  slug: "arena",
+  region: "",
+  settlement: "",
+  location: "Локацията ще бъде добавена от организатора.",
   description:
-    "Първото реално игрище в BattleBooking. Активни airsoft сценарии, комплекти под наем, правила и регистрация през платформата.",
-  logoUrl: "/warzone-logo.png",
+    "Профилът на това игрище все още се настройва. Организаторът може да добави собствено лого, фон, описание, цени и социални мрежи от Настройки.",
+  logoUrl: "/battlebooking-real-logo-transparent.png",
   logoFit: "contain",
   logoScale: 1,
   logoX: 0,
   logoY: 0,
-  backgroundUrl: "/warzone-bg.jpg",
-  ownPrice: "10€",
-  rentalPrice: "25€",
-  phone: "0897047668",
+  backgroundUrl: "/battlebooking-bg.jpg",
+  ownPrice: "",
+  rentalPrice: "",
+  phone: "",
   facebook: "",
   instagram: "",
   tiktok: "",
 };
 
-export const FIELD_SETTINGS_STORAGE_KEY = "battlebooking-field-settings-v64";
+export const FIELD_SETTINGS_STORAGE_KEY = "battlebooking-field-settings-v65";

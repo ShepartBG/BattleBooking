@@ -187,7 +187,7 @@ async function checkLoginAccess(email: string) {
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 
-  if (ownerEmails.length === 0 || ownerEmails.includes(email)) {
+  if (ownerEmails.includes(email)) {
     return { allowed: true, message: "" };
   }
 
