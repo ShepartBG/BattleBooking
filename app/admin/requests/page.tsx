@@ -25,6 +25,11 @@ type FieldRequest = {
   admin_notes: string | null;
   decision_message: string | null;
   reviewed_at: string | null;
+  access_status?: RequestStatus | null;
+  trial_started_at?: string | null;
+  subscription_valid_until?: string | null;
+  grace_until?: string | null;
+  access_blocked_reason?: string | null;
 };
 
 const statusConfig: Record<RequestStatus, { label: string; className: string }> = {
@@ -77,43 +82,32 @@ export default function RequestsPage() {
   }
 
   async function updateStatus(request: FieldRequest, status: RequestStatus) {
-    const message = fieldRequestDecisionEmail(status, request.field_name).body;
     const confirmed = confirm(
-      `Сигурен ли си, че искаш да смениш статуса на "${statusConfig[status].label}"?\n\nПодготвено email съобщение:\n${message}`,
+      `Сигурен ли си, че искаш да смениш статуса на "${statusConfig[status].label}"?
+
+Ако избираш Approve, системата ще създаде login акаунт, ще активира 1 месец безплатен тест и ще изпрати email с линк за задаване на парола.`,
     );
 
     if (!confirmed) return;
 
     setSavingId(request.id);
+    setEmailStatus(null);
 
-    const { error } = await supabase
-      .from("field_requests")
-      .update({
-        status,
-        decision_message: message,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", request.id);
+    const response = await fetch("/api/admin/field-request-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: request.id, status }),
+    });
 
+    const result = await response.json().catch(() => null);
     setSavingId(null);
 
-    if (error) {
-      alert("Грешка при промяна на статуса: " + error.message);
+    if (!response.ok || !result?.ok) {
+      alert(result?.message || "Грешка при промяна на статуса.");
       return;
     }
 
-    const emailResult = await sendDecisionEmail({
-      email: request.email,
-      fieldName: request.field_name,
-      status,
-    });
-
-    setEmailStatus(
-      emailResult.ok
-        ? `Статусът е запазен успешно и email е изпратен до ${request.email}.`
-        : "Статусът е запазен успешно.",
-    );
-
+    setEmailStatus(result.message || `Статусът е запазен успешно за ${request.email}.`);
     await loadRequests();
   }
 
@@ -258,6 +252,12 @@ export default function RequestsPage() {
                       <p className="mt-3 text-xs font-bold text-zinc-500">
                         Подадена: {formatDateTime(request.created_at)}
                       </p>
+
+                      {(request.subscription_valid_until || request.grace_until) && (
+                        <p className="mt-2 text-xs font-bold text-lime-300">
+                          Валиден до: {formatDate(request.subscription_valid_until)} · Гратисен срок до: {formatDate(request.grace_until)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[360px] xl:grid-cols-3 xl:justify-end">
@@ -387,6 +387,15 @@ function DashStat({ label, value, highlight }: { label: string; value: number; h
       <p className={`mt-1 text-4xl font-black ${highlight ? "text-lime-300" : "text-white"}`}>{value}</p>
     </div>
   );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "няма дата";
+  return new Intl.DateTimeFormat("bg-BG", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
 }
 
 function formatDateTime(value: string) {

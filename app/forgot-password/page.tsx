@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
           </p>
           <h1 className="mt-3 text-4xl font-black">Забравена парола</h1>
           <p className="mt-3 leading-7 text-zinc-400">
-            Въведи имейла на organizer акаунта. Ще получиш линк, през който да зададеш нова парола.
+            Въведи имейла на organizer акаунта. Ще получиш автоматичен линк, през който да зададеш нова парола.
           </p>
 
           <label className="mt-6 block">

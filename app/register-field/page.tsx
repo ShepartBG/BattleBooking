@@ -175,8 +175,7 @@ export default function RegisterFieldPage() {
               <div>
                 <h2 className="text-2xl font-black sm:text-3xl">55 € / месец</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-300">
-                  Месечен абонамент за използване на BattleBooking. Без
-                  дългосрочен договор.
+                  Първият месец е безплатен тестов достъп. След това абонаментът е 55 € / месец, без дългосрочен договор.
                 </p>
               </div>
               <div className="rounded-2xl border border-[#95c900]/25 bg-[#95c900]/10 px-4 py-3 text-sm font-black text-[#b7ef16]">
@@ -216,7 +215,7 @@ export default function RegisterFieldPage() {
                 </p>
               </div>
               <p className="max-w-sm text-sm leading-6 text-zinc-300">
-                Включва игри, регистрации, admin панел, настройки и статистики.
+                Включва 1 месец безплатен тест, игри, регистрации, admin панел, настройки и статистики.
               </p>
             </div>
           </div>

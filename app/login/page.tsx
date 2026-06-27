@@ -19,6 +19,7 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -42,14 +43,24 @@ function LoginContent() {
     }
 
     setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
     const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: normalizedEmail,
       password,
     });
-    setLoading(false);
 
     if (loginError) {
+      setLoading(false);
       setError("Грешен имейл или парола. Провери данните и опитай пак.");
+      return;
+    }
+
+    const accessResult = await checkLoginAccess(normalizedEmail);
+    setLoading(false);
+
+    if (!accessResult.allowed) {
+      await supabase.auth.signOut();
+      setError(accessResult.message);
       return;
     }
 
@@ -101,14 +112,23 @@ function LoginContent() {
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-zinc-500">
               Парола
             </span>
-            <input
-              className="bb-input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <input
+                className="bb-input pr-24"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+              >
+                {showPassword ? "Скрий" : "Покажи"}
+              </button>
+            </div>
           </label>
 
           {error && (
@@ -158,4 +178,62 @@ export default function LoginPage() {
       <LoginContent />
     </Suspense>
   );
+}
+
+
+async function checkLoginAccess(email: string) {
+  const ownerEmails = (process.env.NEXT_PUBLIC_OWNER_EMAILS || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (ownerEmails.length === 0 || ownerEmails.includes(email)) {
+    return { allowed: true, message: "" };
+  }
+
+  const { data, error } = await supabase
+    .from("field_requests")
+    .select("status,access_status,subscription_valid_until,grace_until,access_blocked_reason")
+    .eq("email", email)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return {
+      allowed: false,
+      message: "Няма активен BattleBooking достъп за този email. Ако смяташ, че има грешка, свържи се с BattleBooking.",
+    };
+  }
+
+  const status = String(data.access_status || data.status || "");
+
+  if (status === "suspended") {
+    return {
+      allowed: false,
+      message:
+        data.access_blocked_reason ||
+        "Достъпът Ви е временно ограничен. За повече информация се свържете с BattleBooking.",
+    };
+  }
+
+  if (status !== "active") {
+    return {
+      allowed: false,
+      message: "Акаунтът Ви все още не е активиран. Моля, изчакайте одобрение от BattleBooking.",
+    };
+  }
+
+  if (data.grace_until) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today > String(data.grace_until)) {
+      return {
+        allowed: false,
+        message:
+          "Достъпът Ви е временно ограничен. За повече информация се свържете с BattleBooking.",
+      };
+    }
+  }
+
+  return { allowed: true, message: "" };
 }

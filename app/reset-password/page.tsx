@@ -12,6 +12,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,28 +63,46 @@ export default function ResetPasswordPage() {
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-zinc-500">
               Нова парола
             </span>
-            <input
-              className="bb-input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-            />
+            <div className="relative">
+              <input
+                className="bb-input pr-24"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+              >
+                {showPassword ? "Скрий" : "Покажи"}
+              </button>
+            </div>
           </label>
 
           <label className="mt-4 block">
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-zinc-500">
               Повтори паролата
             </span>
-            <input
-              className="bb-input"
-              type="password"
-              value={repeatPassword}
-              onChange={(e) => setRepeatPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-            />
+            <div className="relative">
+              <input
+                className="bb-input pr-24"
+                type={showRepeatPassword ? "text" : "password"}
+                value={repeatPassword}
+                onChange={(e) => setRepeatPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowRepeatPassword((current) => !current)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
+              >
+                {showRepeatPassword ? "Скрий" : "Покажи"}
+              </button>
+            </div>
           </label>
 
           {error && <div className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm font-bold text-red-200">{error}</div>}

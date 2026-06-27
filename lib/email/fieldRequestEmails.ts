@@ -1,3 +1,4 @@
+import { formatBgDate } from "@/lib/subscription";
 import type { FieldRequestStatus } from "@/lib/fieldRequests";
 
 export type EmailTemplate = {
@@ -19,11 +20,44 @@ export type FieldRequestOwnerDetails = {
   message?: string | null;
 };
 
+type ApprovalDetails = {
+  loginUrl?: string;
+  resetUrl?: string | null;
+  subscriptionValidUntil?: string | null;
+  graceUntil?: string | null;
+};
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://battlebooking.bg";
+const CONTACT_EMAIL = "battlebooking@abv.bg";
+const CONTACT_PHONE = "0897 047 668";
 const BRAND_GREEN = "#95c900";
 const BRAND_GREEN_LIGHT = "#b7ef16";
-const CONTACT_EMAIL = process.env.BATTLEBOOKING_CONTACT_EMAIL || "battlebooking@abv.bg";
-const CONTACT_PHONE = process.env.BATTLEBOOKING_CONTACT_PHONE || "0897 047 668";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://battlebooking.bg";
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function footerText() {
+  return `Ако имате въпроси или се нуждаете от съдействие, можете да се свържете с нас:
+Email: ${CONTACT_EMAIL}
+Телефон: ${CONTACT_PHONE}
+Сайт: ${SITE_URL}
+
+Поздрави,
+Екипът на BattleBooking
+Your Battle. Our Mission.`;
+}
+
+function buildText(mainBody: string) {
+  return `${mainBody.trim()}
+
+${footerText()}`;
+}
 
 function buildEmailHtml({
   title,
@@ -39,99 +73,69 @@ function buildEmailHtml({
   ctaUrl?: string;
 }) {
   const paragraphs = body
+    .trim()
     .split("\n")
-    .filter((line) => line.trim().length > 0)
+    .map((line) => line.trim())
+    .filter(Boolean)
     .map(
       (line) =>
-        `<p style="margin:0 0 14px;color:#d4d4d8;font-size:15px;line-height:1.7;">${escapeHtml(
-          line,
-        )}</p>`,
+        `<p style="margin:0 0 14px;color:#d4d4d8;font-size:15px;line-height:1.7;">${escapeHtml(line)}</p>`,
     )
     .join("");
 
-  const button =
-    ctaLabel && ctaUrl
-      ? `<a href="${escapeHtml(ctaUrl)}" style="display:inline-block;margin-top:12px;background:${BRAND_GREEN};color:#050505;text-decoration:none;font-weight:900;padding:14px 20px;border-radius:16px;">${escapeHtml(
-          ctaLabel,
-        )}</a>`
-      : "";
+  const cta = ctaLabel && ctaUrl
+    ? `<a href="${escapeHtml(ctaUrl)}" style="display:inline-block;margin:12px 0 20px;background:${BRAND_GREEN};color:#050505;text-decoration:none;font-weight:900;padding:14px 18px;border-radius:16px;">${escapeHtml(ctaLabel)}</a>`
+    : "";
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;background:#050505;padding:0;font-family:Arial,Helvetica,sans-serif;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#050505;padding:32px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border:1px solid rgba(149,201,0,0.25);border-radius:28px;overflow:hidden;background:#0b0b0b;">
-            <tr>
-              <td style="padding:28px;background:linear-gradient(135deg,rgba(149,201,0,0.25),rgba(0,0,0,0));border-bottom:1px solid rgba(255,255,255,0.08);">
-                <div style="display:inline-block;border:1px solid rgba(183,239,22,0.35);border-radius:999px;padding:8px 12px;color:${BRAND_GREEN_LIGHT};font-size:12px;font-weight:900;letter-spacing:3px;text-transform:uppercase;">BattleBooking</div>
-                <h1 style="margin:12px 0 0;color:#ffffff;font-size:32px;line-height:1.15;font-weight:900;">${escapeHtml(
-                  title,
-                )}</h1>
-                <p style="margin:14px 0 0;color:#d4d4d8;font-size:16px;line-height:1.6;">${escapeHtml(
-                  intro,
-                )}</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:28px;">
-                ${paragraphs}
-                ${button}
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:22px 28px;border-top:1px solid rgba(255,255,255,0.08);background:#080808;">
-                <p style="margin:0;color:#a1a1aa;font-size:13px;line-height:1.7;">При въпроси или нужда от съдействие можете да се свържете с нас:<br><strong style="color:#ffffff;">Email:</strong> ${escapeHtml(CONTACT_EMAIL)}<br><strong style="color:#ffffff;">Телефон:</strong> ${escapeHtml(CONTACT_PHONE)}<br><strong style="color:#ffffff;">Сайт:</strong> ${escapeHtml(SITE_URL)}</p>
-                <p style="margin:16px 0 0;color:#a1a1aa;font-size:13px;line-height:1.6;">Поздрави,<br><strong style="color:#ffffff;">Екипът на BattleBooking</strong><br><span style="color:${BRAND_GREEN_LIGHT};font-weight:700;">Your Battle. Our Mission.</span></p>
-                <p style="margin:14px 0 0;color:#71717a;font-size:12px;line-height:1.6;">Този email е изпратен автоматично от BattleBooking.</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+  <body style="margin:0;background:#050505;font-family:Arial,Helvetica,sans-serif;color:#ffffff;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#050505;padding:28px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border:1px solid rgba(149,201,0,.28);border-radius:28px;overflow:hidden;background:#0b0b0b;">
+          <tr><td style="padding:28px;background:linear-gradient(135deg,rgba(149,201,0,.2),rgba(0,0,0,0));">
+            <p style="margin:0;color:${BRAND_GREEN_LIGHT};font-size:12px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;">BattleBooking</p>
+            <h1 style="margin:10px 0 0;font-size:32px;line-height:1.05;color:#ffffff;">${escapeHtml(title)}</h1>
+            <p style="margin:14px 0 0;color:#d4d4d8;font-size:16px;line-height:1.6;">${escapeHtml(intro)}</p>
+          </td></tr>
+          <tr><td style="padding:28px;">
+            ${paragraphs}
+            ${cta}
+            <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12);">
+              <p style="margin:0;color:#a1a1aa;font-size:13px;line-height:1.7;">Ако имате въпроси или се нуждаете от съдействие, можете да се свържете с нас:<br><strong style="color:#ffffff;">Email:</strong> ${escapeHtml(CONTACT_EMAIL)}<br><strong style="color:#ffffff;">Телефон:</strong> ${escapeHtml(CONTACT_PHONE)}<br><strong style="color:#ffffff;">Сайт:</strong> ${escapeHtml(SITE_URL)}</p>
+              <p style="margin:16px 0 0;color:#a1a1aa;font-size:13px;line-height:1.6;">Поздрави,<br><strong style="color:#ffffff;">Екипът на BattleBooking</strong><br><span style="color:${BRAND_GREEN_LIGHT};font-weight:700;">Your Battle. Our Mission.</span></p>
+              <p style="margin:14px 0 0;color:#71717a;font-size:12px;line-height:1.6;">Този email е изпратен автоматично от BattleBooking.</p>
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
     </table>
   </body>
 </html>`;
 }
 
-function withContactFooter(body: string) {
-  return `${body}
-
-Ако имате въпроси или се нуждаете от съдействие, можете да се свържете с нас:
-Email: ${CONTACT_EMAIL}
-Телефон: ${CONTACT_PHONE}
-Сайт: ${SITE_URL}
-
-Поздрави,
-Екипът на BattleBooking
-Your Battle. Our Mission.`;
-}
-
 export function fieldRequestReceivedEmail(fieldName: string): EmailTemplate {
   const safeName = fieldName || "Вашето игрище";
-  const body = withContactFooter(`Здравейте,
+  const mainBody = `Здравейте,
 
 Благодарим Ви, че заявихте достъп до BattleBooking за ${safeName}.
 
 Получихме Вашата заявка и нашият екип ще я разгледа възможно най-скоро.
 
-След като прегледаме информацията за Вашето игрище, ще се свържем с Вас с повече подробности относно следващите стъпки и активирането на профила.`);
+След одобрение получавате 1 месец безплатен тестов достъп, за да проверите дали BattleBooking е удобен за Вашето игрище.`;
 
   return {
     subject: "Получихме заявката Ви за BattleBooking ✅",
-    body,
+    body: buildText(mainBody),
     html: buildEmailHtml({
       title: "Получихме заявката Ви",
       intro: `Заявката за ${safeName} е приета за преглед.`,
-      body,
+      body: mainBody,
     }),
   };
 }
 
-export function fieldRequestOwnerNotificationEmail(
-  details: FieldRequestOwnerDetails,
-): EmailTemplate {
+export function fieldRequestOwnerNotificationEmail(details: FieldRequestOwnerDetails): EmailTemplate {
   const adminUrl = `${SITE_URL.replace(/\/$/, "")}/admin/requests`;
   const rows = [
     `Игрище: ${details.fieldName}`,
@@ -146,7 +150,7 @@ export function fieldRequestOwnerNotificationEmail(
     details.message ? `Описание: ${details.message}` : "Описание: няма",
   ].filter(Boolean);
 
-  const body = `Нова заявка за достъп до BattleBooking.
+  const mainBody = `Нова заявка за достъп до BattleBooking.
 
 ${rows.join("\n")}
 
@@ -155,11 +159,11 @@ ${adminUrl}`;
 
   return {
     subject: `Нова заявка за достъп: ${details.fieldName}`,
-    body,
+    body: buildText(mainBody),
     html: buildEmailHtml({
       title: "Нова заявка за достъп",
       intro: `${details.fieldName} изпрати заявка към BattleBooking.`,
-      body,
+      body: mainBody,
       ctaLabel: "Отвори заявките",
       ctaUrl: adminUrl,
     }),
@@ -169,101 +173,86 @@ ${adminUrl}`;
 export function fieldRequestDecisionEmail(
   status: FieldRequestStatus,
   fieldName: string,
+  approval?: ApprovalDetails,
 ): EmailTemplate {
   const safeName = fieldName || "Вашето игрище";
+  const loginUrl = approval?.loginUrl || `${SITE_URL.replace(/\/$/, "")}/login`;
 
   if (status === "active") {
-    const body = withContactFooter(`Здравейте,
+    const resetLine = approval?.resetUrl
+      ? `За да зададете парола, отворете този линк: ${approval.resetUrl}`
+      : `Можете да влезете от: ${loginUrl}`;
 
-Благодарим Ви за проявения интерес към BattleBooking.
+    const mainBody = `Здравейте,
 
 Поздравления! Вашата заявка за достъп до BattleBooking за ${safeName} беше одобрена.
 
-Вашето игрище вече може да бъде активирано в платформата. Нашият екип ще се свърже с Вас, за да уточним финалните детайли и стартирането на профила.
+Активиран е 1 месец безплатен тестов достъп.
 
-Очакваме с нетърпение да работим заедно.`);
+Валидност на тестовия достъп: до ${formatBgDate(approval?.subscriptionValidUntil)}.
+
+След тази дата имате 7 дни гратисен срок за подновяване на плащането: до ${formatBgDate(approval?.graceUntil)}.
+
+${resetLine}
+
+Очакваме с нетърпение да работим заедно.`;
 
     return {
-      subject: "Вашата заявка за BattleBooking е одобрена ✅",
-      body,
+      subject: "Вашият BattleBooking акаунт е одобрен ✅",
+      body: buildText(mainBody),
       html: buildEmailHtml({
-        title: "Заявката Ви е одобрена",
-        intro: `${safeName} е одобрено за BattleBooking.`,
-        body,
-        ctaLabel: "Вход в BattleBooking",
-        ctaUrl: `${SITE_URL.replace(/\/$/, "")}/login`,
+        title: "Акаунтът Ви е одобрен",
+        intro: `${safeName} вече има активиран BattleBooking достъп.`,
+        body: mainBody,
+        ctaLabel: approval?.resetUrl ? "Задай парола" : "Вход в BattleBooking",
+        ctaUrl: approval?.resetUrl || loginUrl,
       }),
     };
   }
 
   if (status === "payment_pending") {
-    const body = withContactFooter(`Здравейте,
-
-Благодарим Ви за проявения интерес към BattleBooking.
+    const mainBody = `Здравейте,
 
 Вашата заявка за ${safeName} е прегледана успешно и преминава към следваща стъпка.
 
-Към момента очакваме финално потвърждение и активиране на достъпа. Нашият екип ще се свърже с Вас, за да уточним необходимите детайли.`);
+Към момента очакваме финално потвърждение и активиране на достъпа.`;
 
     return {
       subject: "Заявката Ви за BattleBooking преминава към следваща стъпка",
-      body,
-      html: buildEmailHtml({
-        title: "Заявката преминава към следваща стъпка",
-        intro: `${safeName} е прегледано от екипа на BattleBooking.`,
-        body,
-      }),
+      body: buildText(mainBody),
+      html: buildEmailHtml({ title: "Заявката преминава към следваща стъпка", intro: `${safeName} е прегледано от екипа на BattleBooking.`, body: mainBody }),
     };
   }
 
   if (status === "rejected") {
-    const body = withContactFooter(`Здравейте,
+    const mainBody = `Здравейте,
 
-Благодарим Ви, че проявихте интерес към BattleBooking и отделихте време да изпратите заявка за достъп.
+Благодарим Ви, че проявихте интерес към BattleBooking.
 
 След преглед на подадената информация за ${safeName}, на този етап не можем да активираме достъп за Вашето игрище.
 
-Това решение не означава, че възможността е окончателно затворена. При промяна на обстоятелствата или при допълнителна информация, винаги можете да се свържете с нас.
-
-Благодарим Ви още веднъж и Ви пожелаваме успешен сезон.`);
+При промяна на обстоятелствата или при допълнителна информация, винаги можете да се свържете с нас.`;
 
     return {
       subject: "Отговор относно заявката Ви за BattleBooking",
-      body,
-      html: buildEmailHtml({
-        title: "Отговор относно заявката Ви",
-        intro: `Прегледахме заявката за ${safeName}.`,
-        body,
-      }),
+      body: buildText(mainBody),
+      html: buildEmailHtml({ title: "Отговор относно заявката Ви", intro: `Прегледахме заявката за ${safeName}.`, body: mainBody }),
     };
   }
 
   if (status === "suspended") {
-    const body = withContactFooter(`Здравейте,
+    const mainBody = `Здравейте,
 
 Достъпът до BattleBooking за ${safeName} е временно спрян.
 
-Можете да се свържете с нашия екип за повече информация и съдействие.`);
+За повече информация и съдействие можете да се свържете с нашия екип.`;
 
     return {
       subject: "BattleBooking: достъпът е временно спрян",
-      body,
-      html: buildEmailHtml({
-        title: "Достъпът е временно спрян",
-        intro: `Достъпът за ${safeName} е временно спрян.`,
-        body,
-      }),
+      body: buildText(mainBody),
+      html: buildEmailHtml({ title: "Достъпът е временно спрян", intro: `Достъпът за ${safeName} е временно спрян.`, body: mainBody }),
     };
   }
 
   return fieldRequestReceivedEmail(safeName);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

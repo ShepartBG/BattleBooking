@@ -6,57 +6,45 @@ export type RegistrationErrors = {
   participation_type?: string;
 };
 
-export function validateRegistrationForm(formData: FormData): RegistrationErrors {
-  const firstName = String(formData.get("first_name") || "").trim();
-  const lastName = String(formData.get("last_name") || "").trim();
-  const phone = normalizePhone(String(formData.get("phone") || ""));
-  const ageRaw = String(formData.get("age") || "").trim();
-  const participationType = String(formData.get("participation_type") || "").trim();
+function text(value: FormDataEntryValue | null) {
+  return String(value || "").trim();
+}
 
+function isName(value: string) {
+  return /^[A-Za-zА-Яа-яЁё]{2,40}$/.test(value);
+}
+
+export function validateRegistrationForm(formData: FormData) {
   const errors: RegistrationErrors = {};
+  const firstName = text(formData.get("first_name"));
+  const lastName = text(formData.get("last_name"));
+  const phone = text(formData.get("phone")).replace(/\D/g, "");
+  const age = Number(text(formData.get("age")));
+  const participationType = text(formData.get("participation_type"));
 
-  if (!firstName) {
-    errors.first_name = "Въведи име.";
-  } else if (!/^[A-Za-zА-Яа-яЁё]{2,40}$/.test(firstName)) {
-    errors.first_name = "Името трябва да съдържа само букви.";
+  if (!isName(firstName)) {
+    errors.first_name = "Въведи валидно име - само букви, минимум 2 символа.";
   }
 
-  if (!lastName) {
-    errors.last_name = "Въведи фамилия.";
-  } else if (!/^[A-Za-zА-Яа-яЁё]{2,40}$/.test(lastName)) {
-    errors.last_name = "Фамилията трябва да съдържа само букви.";
+  if (!isName(lastName)) {
+    errors.last_name = "Въведи валидна фамилия - само букви, минимум 2 символа.";
   }
 
-  if (!isValidBgPhone(phone)) {
-    errors.phone = "Регистрацията не беше приета. Въведи валиден български мобилен номер с 10 цифри. Пример: 0897047668.";
+  if (!/^08\d{8}$/.test(phone)) {
+    errors.phone = "Телефонът трябва да е валиден български номер с 10 цифри. Пример: 0897047668.";
   }
 
-  const age = Number(ageRaw);
-  if (!ageRaw || Number.isNaN(age)) {
-    errors.age = "Въведи възраст.";
-  } else if (age < 16) {
-    errors.age = "За стандартни игри минималната възраст е 16 години.";
-  } else if (age > 80) {
-    errors.age = "Провери въведената възраст.";
+  if (!Number.isFinite(age) || age < 16 || age > 60) {
+    errors.age = "Възрастта трябва да е между 16 и 60 години.";
   }
 
-  if (!participationType) {
-    errors.participation_type = "Избери начин на участие.";
-  } else if (!['rental', 'own'].includes(participationType)) {
-    errors.participation_type = "Избери валиден начин на участие.";
+  if (participationType !== "rental" && participationType !== "own") {
+    errors.participation_type = "Избери дали си с наета или собствена екипировка.";
   }
 
   return errors;
 }
 
 export function hasRegistrationErrors(errors: RegistrationErrors) {
-  return Object.keys(errors).length > 0;
-}
-
-export function normalizePhone(phone: string) {
-  return phone.replace(/\D/g, "");
-}
-
-export function isValidBgPhone(phone: string) {
-  return /^08\d{8}$/.test(normalizePhone(phone));
+  return Object.values(errors).some(Boolean);
 }
