@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
 import { isOwnerEmail } from "@/lib/access";
+import { getCurrentFieldContext } from "@/lib/currentField";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 
 type Game = {
@@ -27,6 +28,7 @@ export default function AdminPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [isOwner, setIsOwner] = useState(false);
+  const [fieldId, setFieldId] = useState<string | null>(null);
   const { Dialog, bbAlert, bbConfirm, bbPrompt } = useBattleBookingDialog();
 
   async function loadPendingRequests() {
@@ -38,11 +40,21 @@ export default function AdminPage() {
     if (!error) setPendingRequests(count || 0);
   }
 
-  async function loadGames() {
-    const { data, error } = await supabase
+  async function loadGames(nextFieldId = fieldId, ownerMode = isOwner) {
+    let query = supabase
       .from("games")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (!ownerMode) {
+      if (!nextFieldId) {
+        setGames([]);
+        return;
+      }
+      query = query.eq("field_id", nextFieldId);
+    }
+
+    const { data, error } = await query;
 
     if (error) return bbAlert("Грешка при зареждане: " + error.message, "Грешка");
     setGames(data || []);
@@ -78,7 +90,10 @@ export default function AdminPage() {
     if (newStatus === "postponed") payload.postponed_reason = postponedReason;
     if (newStatus === "active") payload.postponed_reason = null;
 
-    const { error } = await supabase.from("games").update(payload).eq("id", gameId);
+    let updateQuery = supabase.from("games").update(payload).eq("id", gameId);
+    if (!isOwner && fieldId) updateQuery = updateQuery.eq("field_id", fieldId);
+
+    const { error } = await updateQuery;
 
     if (error) return bbAlert("Грешка при промяна на статуса: " + error.message, "Грешка");
     await loadGames();
@@ -93,6 +108,11 @@ export default function AdminPage() {
 
     if (!confirmed) return;
 
+    const gameIsAllowed = isOwner || games.some((game) => game.id === gameId && (!fieldId || true));
+    if (!gameIsAllowed) {
+      return bbAlert("Нямаш право да изтриеш тази игра.", "Забранен достъп");
+    }
+
     const { error: registrationsError } = await supabase
       .from("registrations")
       .delete()
@@ -102,7 +122,10 @@ export default function AdminPage() {
       return bbAlert("Грешка при изтриване на записванията: " + registrationsError.message, "Грешка");
     }
 
-    const { error } = await supabase.from("games").delete().eq("id", gameId);
+    let deleteQuery = supabase.from("games").delete().eq("id", gameId);
+    if (!isOwner && fieldId) deleteQuery = deleteQuery.eq("field_id", fieldId);
+
+    const { error } = await deleteQuery;
 
     if (error) return bbAlert("Грешка при изтриване на играта: " + error.message, "Грешка");
     await loadGames();
@@ -119,15 +142,30 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadDashboard() {
-      const { data } = await supabase.auth.getUser();
-      const owner = isOwnerEmail(data.user?.email || "");
-      setIsOwner(owner);
-      await loadGames();
-      if (owner) await loadPendingRequests();
+      try {
+        const { data } = await supabase.auth.getUser();
+        const owner = isOwnerEmail(data.user?.email || "");
+        const context = await getCurrentFieldContext();
+        if (!mounted) return;
+
+        setIsOwner(owner || context.isOwner);
+        setFieldId(context.fieldId);
+        await loadGames(context.fieldId, owner || context.isOwner);
+        if (owner || context.isOwner) await loadPendingRequests();
+      } catch (error) {
+        if (!mounted) return;
+        bbAlert(error instanceof Error ? error.message : "Грешка при зареждане на профила.", "Грешка");
+      }
     }
 
     loadDashboard();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const activeGames = games.filter((game) => game.status === "active").length;

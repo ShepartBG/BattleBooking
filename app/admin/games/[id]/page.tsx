@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
+import { getCurrentFieldContext } from "@/lib/currentField";
 
 type Registration = {
   id: string;
@@ -36,16 +37,23 @@ function formatDate(date: string) {
 
 export default function GamePlayersPage() {
   const params = useParams();
+  const router = useRouter();
   const gameId = params.id as string;
 
   const [players, setPlayers] = useState<Registration[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fieldId, setFieldId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const { Dialog, bbAlert, bbConfirm } = useBattleBookingDialog();
 
   async function cancelPlayer(playerId: string) {
     const confirmed = await bbConfirm("Сигурен ли си, че искаш да анулираш този играч?", "Анулиране на играч");
     if (!confirmed) return;
+
+    if (!isOwner && !fieldId) {
+      return bbAlert("Нямаш право да анулираш играч от тази игра.", "Забранен достъп");
+    }
 
     const { error } = await supabase
       .from("registrations")
@@ -59,14 +67,37 @@ export default function GamePlayersPage() {
   async function loadData() {
     setLoading(true);
 
-    const { data: gameData, error: gameError } = await supabase
+    let context;
+    try {
+      context = await getCurrentFieldContext();
+      setFieldId(context.fieldId);
+      setIsOwner(context.isOwner);
+    } catch (error) {
+      bbAlert(error instanceof Error ? error.message : "Грешка при проверка на достъпа.", "Грешка");
+      setLoading(false);
+      return;
+    }
+
+    let gameQuery = supabase
       .from("games")
-      .select("id, title, game_date, game_time, location, max_rental_sets")
-      .eq("id", gameId)
-      .single();
+      .select("id, title, game_date, game_time, location, max_rental_sets, field_id")
+      .eq("id", gameId);
+
+    if (!context.isOwner) {
+      if (!context.fieldId) {
+        bbAlert("Нямаш достъп до тази игра.", "Забранен достъп");
+        router.replace("/admin");
+        setLoading(false);
+        return;
+      }
+      gameQuery = gameQuery.eq("field_id", context.fieldId);
+    }
+
+    const { data: gameData, error: gameError } = await gameQuery.single();
 
     if (gameError) {
-      bbAlert("Грешка при зареждане на играта: " + gameError.message, "Грешка");
+      bbAlert("Играта не е намерена или нямаш достъп до нея: " + gameError.message, "Грешка");
+      router.replace("/admin");
       setLoading(false);
       return;
     }

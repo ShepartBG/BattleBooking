@@ -24,6 +24,7 @@ export default function FieldPage() {
   const slug = String(params?.slug || "");
   const [games, setGames] = useState<Game[]>([]);
   const [fieldSettings, setFieldSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
+  const [fieldId, setFieldId] = useState<string | null>(null);
   const [loadingField, setLoadingField] = useState(true);
 
   useEffect(() => {
@@ -43,10 +44,13 @@ export default function FieldPage() {
         }
 
         if (result.field) {
+          setFieldId(result.field.id || null);
           setFieldSettings({
             ...DEFAULT_FIELD_SETTINGS,
             ...result.field,
           });
+        } else {
+          setFieldId(null);
         }
       } catch (error) {
         console.error("Field load error:", error);
@@ -60,9 +64,15 @@ export default function FieldPage() {
 
   useEffect(() => {
     async function loadGames() {
+      if (!fieldId) {
+        setGames([]);
+        return;
+      }
+
       const { data } = await supabase
         .from("games")
-        .select("id,title,game_date,game_time,location,max_rental_sets,status")
+        .select("id,title,game_date,game_time,location,max_rental_sets,status,field_id")
+        .eq("field_id", fieldId)
         .in("status", ["active", "postponed"])
         .gte("game_date", new Date().toISOString().slice(0, 10))
         .order("game_date", { ascending: true })
@@ -72,7 +82,7 @@ export default function FieldPage() {
     }
 
     loadGames();
-  }, []);
+  }, [fieldId]);
 
   return (
     <PublicShell>

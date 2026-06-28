@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import { supabase } from "@/lib/supabase";
+import { getCurrentFieldContext } from "@/lib/currentField";
 import AdminShell from "@/components/admin/AdminShell";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 
@@ -49,6 +50,19 @@ export default function NewGamePage() {
       exactLocation ||
       [settlement, region ? `област ${region}` : ""].filter(Boolean).join(", ");
 
+    let context;
+    try {
+      context = await getCurrentFieldContext();
+    } catch (error) {
+      setLoading(false);
+      return bbAlert(error instanceof Error ? error.message : "Не намерих профила на организатора.", "Грешка");
+    }
+
+    if (!context.fieldId) {
+      setLoading(false);
+      return bbAlert("Не намерих field_id за този организатор. Провери дали профилът е активен и има създаден профил на игрище.", "Грешка");
+    }
+
     const { error } = await supabase.from("games").insert({
       title: formData.get("title"),
       game_date: toInputDate(selectedDate),
@@ -59,6 +73,7 @@ export default function NewGamePage() {
       rules_version: "v1.0",
       status: formData.get("status"),
       description: formData.get("description"),
+      field_id: context.fieldId,
     });
 
     setLoading(false);
