@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
 import type { FieldSettingsRow } from "@/lib/fieldSettings";
+import { resolveRealFieldId } from "@/lib/fieldIdentity";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,10 +15,12 @@ type PublicFieldRow = FieldSettingsRow & {
   status: string;
 };
 
-function toPublicField(row: PublicFieldRow) {
+async function toPublicField(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, row: PublicFieldRow) {
   const settings = rowToFieldSettings(row);
+  const realFieldId = await resolveRealFieldId(supabaseAdmin, row);
+
   return {
-    id: row.id,
+    id: realFieldId || row.id,
     status: row.status,
     name: settings.name,
     slug: settings.slug || createFieldSlug(settings.name),
@@ -58,7 +61,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
     }
 
-    const fields = ((data || []) as PublicFieldRow[]).map(toPublicField);
+    const fields = await Promise.all(
+      ((data || []) as PublicFieldRow[]).map((row) => toPublicField(supabaseAdmin, row)),
+    );
 
     if (slug) {
       const field = fields.find(
