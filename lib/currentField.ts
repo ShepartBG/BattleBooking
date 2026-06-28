@@ -8,6 +8,17 @@ export type CurrentFieldContext = {
   fieldId: string | null;
 };
 
+type FieldProfile = {
+  id: string;
+  field_id?: string | null;
+  field_name?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  contact_phone?: string | null;
+  status?: string | null;
+  access_status?: string | null;
+};
+
 export async function getCurrentFieldContext(): Promise<CurrentFieldContext> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
@@ -20,12 +31,12 @@ export async function getCurrentFieldContext(): Promise<CurrentFieldContext> {
 
   const { data: fieldProfile, error: fieldError } = await supabase
     .from("field_requests")
-    .select("id,field_name,city,phone,status,access_status")
+    .select("id,field_id,field_name,city,phone,contact_phone,status,access_status")
     .eq("email", userEmail)
     .in("status", ["active", "payment_pending", "suspended"])
     .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<FieldProfile>();
 
   if (fieldError) {
     throw new Error(fieldError.message);
@@ -40,9 +51,7 @@ export async function getCurrentFieldContext(): Promise<CurrentFieldContext> {
 
   if (!realFieldId) {
     if (owner) return { userEmail, isOwner: true, fieldId: null };
-    throw new Error(
-      "Не намерих и не успях да създам реалния field_id за този организатор.",
-    );
+    throw new Error("Не намерих реалния field_id за този организатор.");
   }
 
   return { userEmail, isOwner: owner, fieldId: realFieldId };

@@ -1,5 +1,6 @@
 export type FieldRequestLike = {
   id?: string | null;
+  field_id?: string | null;
   field_name?: string | null;
   city?: string | null;
   phone?: string | null;
@@ -14,38 +15,45 @@ function clean(value?: string | null) {
   return String(value || "").trim();
 }
 
-function normalizePhone(value?: string | null) {
-  return clean(value).replace(/\D/g, "");
+async function updateRequestFieldId(
+  supabaseClient: SupabaseLike,
+  requestId?: string | null,
+  fieldId?: string | null,
+) {
+  if (!requestId || !fieldId) return;
+  await supabaseClient
+    .from("field_requests")
+    .update({ field_id: fieldId })
+    .eq("id", requestId);
 }
 
 async function findFieldByRequest(
   supabaseClient: SupabaseLike,
   fieldRequest: FieldRequestLike,
 ): Promise<string | null> {
+  if (fieldRequest.field_id) return fieldRequest.field_id;
+
   const fieldName = clean(fieldRequest.field_name);
   const city = clean(fieldRequest.city);
-  const phoneRaw = clean(fieldRequest.contact_phone || fieldRequest.phone);
-  const phoneDigits = normalizePhone(phoneRaw);
+  const phone = clean(fieldRequest.contact_phone || fieldRequest.phone);
 
-  // 1) Най-сигурната връзка в текущата база: fields.field_name + city + phone.
-  if (fieldName) {
-    let query = supabaseClient
+  if (fieldName && city && phone) {
+    const { data, error } = await supabaseClient
       .from("fields")
-      .select("id,field_name,city,phone")
-      .eq("field_name", fieldName);
+      .select("id")
+      .eq("field_name", fieldName)
+      .eq("city", city)
+      .eq("phone", phone)
+      .limit(1)
+      .maybeSingle();
 
-    if (city) query = query.eq("city", city);
-    if (phoneRaw) query = query.eq("phone", phoneRaw);
-
-    const { data, error } = await query.limit(1).maybeSingle();
     if (!error && data?.id) return data.id;
   }
 
-  // 2) Fallback само по име + град.
   if (fieldName && city) {
     const { data, error } = await supabaseClient
       .from("fields")
-      .select("id,field_name,city,phone")
+      .select("id")
       .eq("field_name", fieldName)
       .eq("city", city)
       .limit(1)
@@ -54,35 +62,11 @@ async function findFieldByRequest(
     if (!error && data?.id) return data.id;
   }
 
-  // 3) Fallback само по име на терена.
   if (fieldName) {
     const { data, error } = await supabaseClient
       .from("fields")
-      .select("id,field_name,city,phone")
+      .select("id")
       .eq("field_name", fieldName)
-      .limit(1)
-      .maybeSingle();
-
-    if (!error && data?.id) return data.id;
-  }
-
-  // 4) Fallback по телефон. Пробваме raw и digits, защото в таблиците може да са различно записани.
-  if (phoneRaw) {
-    const { data, error } = await supabaseClient
-      .from("fields")
-      .select("id,field_name,city,phone")
-      .eq("phone", phoneRaw)
-      .limit(1)
-      .maybeSingle();
-
-    if (!error && data?.id) return data.id;
-  }
-
-  if (phoneDigits && phoneDigits !== phoneRaw) {
-    const { data, error } = await supabaseClient
-      .from("fields")
-      .select("id,field_name,city,phone")
-      .eq("phone", phoneDigits)
       .limit(1)
       .maybeSingle();
 
@@ -97,7 +81,12 @@ export async function resolveRealFieldId(
   fieldRequest: FieldRequestLike | null | undefined,
 ): Promise<string | null> {
   if (!fieldRequest) return null;
-  return findFieldByRequest(supabaseClient, fieldRequest);
+
+  const realId = await findFieldByRequest(supabaseClient, fieldRequest);
+  if (realId && !fieldRequest.field_id) {
+    await updateRequestFieldId(supabaseClient, fieldRequest.id, realId);
+  }
+  return realId;
 }
 
 export async function ensureRealFieldId(
@@ -106,7 +95,7 @@ export async function ensureRealFieldId(
 ): Promise<string | null> {
   if (!fieldRequest) return null;
 
-  const existingId = await findFieldByRequest(supabaseClient, fieldRequest);
+  const existingId = await resolveRealFieldId(supabaseClient, fieldRequest);
   if (existingId) return existingId;
 
   const fieldName = clean(fieldRequest.field_name);
@@ -115,8 +104,6 @@ export async function ensureRealFieldId(
 
   if (!fieldName) return null;
 
-  // Ако активният организатор няма ред в fields, създаваме го автоматично.
-  // organizer_id остава NULL, защото в текущата база сочи към стара таблица organizers.
   const { data, error } = await supabaseClient
     .from("fields")
     .insert({
@@ -131,5 +118,7 @@ export async function ensureRealFieldId(
     .single();
 
   if (error || !data?.id) return null;
+
+  await updateRequestFieldId(supabaseClient, fieldRequest.id, data.id);
   return data.id;
 }

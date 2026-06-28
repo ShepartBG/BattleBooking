@@ -9,6 +9,7 @@ export const revalidate = 0;
 
 type PublicFieldRow = FieldSettingsRow & {
   id: string;
+  field_id: string | null;
   field_name: string | null;
   city: string | null;
   message: string | null;
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabaseAdmin
       .from("field_requests")
       .select(
-        "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
+        "id,field_id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
       )
       .eq("status", "active")
       .order("field_name", { ascending: true });
