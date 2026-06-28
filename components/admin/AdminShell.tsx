@@ -61,9 +61,9 @@ export default function AdminShell({ active, children }: Props) {
             <div className="flex items-center gap-3 lg:block">
               <BattleBookingLogo variant="mark" showText={false} />
               <div>
-                <h1 className="text-2xl font-black lg:mt-6 lg:text-3xl">Admin</h1>
+                <h1 className="text-2xl font-black lg:mt-6 lg:text-3xl">Контролен панел</h1>
                 <p className="mt-1 text-xs leading-5 text-zinc-500 lg:mt-2">
-                  Управление на игри, заявки и настройки.
+                  Управление на игри, записвания и профил.
                 </p>
               </div>
             </div>

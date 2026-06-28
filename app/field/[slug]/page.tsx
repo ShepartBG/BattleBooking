@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
 import { supabase } from "@/lib/supabase";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
-import { useFieldSettings } from "@/lib/useFieldSettings";
+import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
+import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
+import type { FieldSettingsRow } from "@/lib/fieldSettings";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
@@ -18,9 +21,51 @@ type Game = {
   status: string;
 };
 
+type PublicField = FieldSettingsRow & {
+  id: string;
+  field_name: string;
+  status: string;
+};
+
 export default function FieldPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = String(params?.slug || "");
   const [games, setGames] = useState<Game[]>([]);
-  const fieldSettings = useFieldSettings();
+  const [fieldSettings, setFieldSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
+  const [loadingField, setLoadingField] = useState(true);
+
+  useEffect(() => {
+    async function loadField() {
+      setLoadingField(true);
+
+      const { data, error } = await supabase
+        .from("field_requests")
+        .select(
+          "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
+        )
+        .eq("status", "active");
+
+      if (error) {
+        console.error("Field load error:", error.message);
+        setLoadingField(false);
+        return;
+      }
+
+      const fields = (data || []) as PublicField[];
+      const matched = fields.find((field) => {
+        const settings = rowToFieldSettings(field);
+        return settings.slug === slug || createFieldSlug(settings.name) === slug;
+      });
+
+      if (matched) {
+        setFieldSettings(rowToFieldSettings(matched));
+      }
+
+      setLoadingField(false);
+    }
+
+    loadField();
+  }, [slug]);
 
   useEffect(() => {
     async function loadGames() {
@@ -41,6 +86,12 @@ export default function FieldPage() {
   return (
     <PublicShell>
       <section className="mx-auto w-full max-w-7xl px-4 py-12">
+        {loadingField && (
+          <div className="mb-5 rounded-[2rem] border border-lime-400/15 bg-black/60 p-5 text-lime-200 backdrop-blur-xl">
+            Зареждане на профила на игрището...
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-[2.6rem] border border-[#95c900]/22 bg-black/60 backdrop-blur-xl">
           <div
             className="relative min-h-[360px] bg-cover bg-center"
@@ -63,7 +114,7 @@ export default function FieldPage() {
               />
 
               <p className="w-fit rounded-full border border-[#95c900]/35 bg-[#95c900]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-[#b7ef16]">
-                Verified field
+                Проверено игрище
               </p>
 
               <h1 className="mt-4 max-w-4xl text-5xl font-black uppercase leading-[0.94] tracking-tight md:text-7xl">
@@ -82,14 +133,18 @@ export default function FieldPage() {
             <h2 className="text-3xl font-black">Информация</h2>
             <div className="mt-5 space-y-3 text-zinc-300">
               <Info label="Локация" value={`📍 ${fieldSettings.location}`} />
-              <Info
-                label="Стандартна цена"
-                value={`${fieldSettings.ownPrice} със собствено оборудване`}
-              />
-              <Info
-                label="Под наем"
-                value={`${fieldSettings.rentalPrice} с комплект под наем`}
-              />
+              {fieldSettings.ownPrice && (
+                <Info
+                  label="Стандартна цена"
+                  value={`${fieldSettings.ownPrice} със собствено оборудване`}
+                />
+              )}
+              {fieldSettings.rentalPrice && (
+                <Info
+                  label="Под наем"
+                  value={`${fieldSettings.rentalPrice} с комплект под наем`}
+                />
+              )}
               <Info label="Статус" value="🟢 Активно игрище" />
               {fieldSettings.phone && (
                 <Info label="Телефон" value={`☎ ${fieldSettings.phone}`} />
@@ -107,26 +162,24 @@ export default function FieldPage() {
             <h2 className="text-3xl font-black">Следващи игри</h2>
             <div className="mt-5 grid gap-4">
               {games.length > 0 ? (
-                games
-                  .slice(0, 2)
-                  .map((game) => (
-                    <GameCard
-                      key={game.id}
-                      id={game.id}
-                      title={game.title}
-                      date={game.game_date}
-                      time={game.game_time}
-                      location={game.location}
-                      maxRentalSets={game.max_rental_sets}
-                      status={game.status}
-                      fieldName={fieldSettings.name}
-                      fieldLogo={fieldSettings.logoUrl}
-                      logoFit={fieldSettings.logoFit}
-            logoScale={fieldSettings.logoScale}
-            logoX={fieldSettings.logoX}
-            logoY={fieldSettings.logoY}
-                    />
-                  ))
+                games.slice(0, 2).map((game) => (
+                  <GameCard
+                    key={game.id}
+                    id={game.id}
+                    title={game.title}
+                    date={game.game_date}
+                    time={game.game_time}
+                    location={game.location}
+                    maxRentalSets={game.max_rental_sets}
+                    status={game.status}
+                    fieldName={fieldSettings.name}
+                    fieldLogo={fieldSettings.logoUrl}
+                    logoFit={fieldSettings.logoFit}
+                    logoScale={fieldSettings.logoScale}
+                    logoX={fieldSettings.logoX}
+                    logoY={fieldSettings.logoY}
+                  />
+                ))
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-zinc-400">
                   В момента няма активни игри за това игрище.
@@ -157,6 +210,7 @@ function Social({ href, label, icon }: { href: string; label: string; icon: stri
     <a
       href={normalizeUrl(href)}
       target="_blank"
+      rel="noreferrer"
       className="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-lime-300 hover:bg-lime-400 hover:text-black"
     >
       <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-sm normal-case">

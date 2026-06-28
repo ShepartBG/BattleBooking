@@ -136,7 +136,7 @@ export default function AdminPage() {
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">
-                Organizer Dashboard
+                Контролен панел
               </p>
               <h2 className="mt-2 text-3xl font-black sm:text-4xl">Управление на игри</h2>
             </div>

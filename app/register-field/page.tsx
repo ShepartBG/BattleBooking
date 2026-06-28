@@ -191,7 +191,7 @@ export default function RegisterFieldPage() {
             <ul className="mt-4 space-y-3 text-sm leading-6 text-zinc-300">
               <li>✅ Собствена страница в BattleBooking</li>
               <li>✅ Игри с отделен линк за записване</li>
-              <li>✅ Admin dashboard за играчи, наеми и статус</li>
+              <li>✅ Контролен панел за играчи, наеми и статус</li>
               <li>✅ Ясна организация на записванията и участниците</li>
             </ul>
           </div>

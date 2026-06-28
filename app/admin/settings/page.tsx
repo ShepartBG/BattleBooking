@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
+import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import {
   DEFAULT_FIELD_SETTINGS,
   FIELD_SETTINGS_STORAGE_KEY,
   FieldSettings,
 } from "@/lib/fieldConfig";
+import { supabase } from "@/lib/supabase";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<FieldSettings>(
@@ -19,27 +21,93 @@ export default function SettingsPage() {
   const [bgPreview, setBgPreview] = useState(
     DEFAULT_FIELD_SETTINGS.backgroundUrl,
   );
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(FIELD_SETTINGS_STORAGE_KEY);
-    if (!saved) return;
-
-    try {
-      const parsed = JSON.parse(saved) as Partial<FieldSettings>;
-      const next = { ...DEFAULT_FIELD_SETTINGS, ...parsed };
-      setSettings(next);
-      setLogoPreview(next.logoUrl || DEFAULT_FIELD_SETTINGS.logoUrl);
-      setBgPreview(next.backgroundUrl || DEFAULT_FIELD_SETTINGS.backgroundUrl);
-    } catch {
-      localStorage.removeItem(FIELD_SETTINGS_STORAGE_KEY);
-    }
+    loadSettings();
   }, []);
+
+  async function loadSettings() {
+    setLoading(true);
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) {
+      setLoading(false);
+      showToast(
+        "error",
+        "Няма активна сесия",
+        "Влез отново в профила си и пробвай пак.",
+      );
+      return;
+    }
+
+    const response = await fetch("/api/field-settings", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      setLoading(false);
+      showToast(
+        "error",
+        "Не успях да заредя настройките",
+        result.message || "Пробвай пак след малко.",
+      );
+      return;
+    }
+
+    let next = {
+      ...DEFAULT_FIELD_SETTINGS,
+      ...(result.settings as Partial<FieldSettings>),
+    };
+
+    const oldLocalSettings = window.localStorage.getItem(FIELD_SETTINGS_STORAGE_KEY);
+    if (oldLocalSettings) {
+      try {
+        next = { ...next, ...(JSON.parse(oldLocalSettings) as Partial<FieldSettings>) };
+        showToast(
+          "success",
+          "Открих стари локални настройки",
+          "Прегледай ги и натисни Запази, за да се качат в профила и да се виждат от всички устройства.",
+        );
+      } catch {
+        window.localStorage.removeItem(FIELD_SETTINGS_STORAGE_KEY);
+      }
+    }
+
+    setSettings(next);
+    setLogoPreview(next.logoUrl || DEFAULT_FIELD_SETTINGS.logoUrl);
+    setBgPreview(next.backgroundUrl || DEFAULT_FIELD_SETTINGS.backgroundUrl);
+    setLoading(false);
+  }
+
+  function showToast(
+    type: "success" | "error",
+    title: string,
+    message: string,
+  ) {
+    setToast({ type, title, message });
+    window.setTimeout(() => setToast(null), 3600);
+  }
 
   function updateField(key: keyof FieldSettings, value: string) {
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
-  function updateNumberField(key: "logoScale" | "logoX" | "logoY", value: number) {
+  function updateNumberField(
+    key: "logoScale" | "logoX" | "logoY",
+    value: number,
+  ) {
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
@@ -65,7 +133,10 @@ export default function SettingsPage() {
   async function saveSettings() {
     try {
       const compressedLogo = await compressImageSource(logoPreview, "logo");
-      const compressedBackground = await compressImageSource(bgPreview, "background");
+      const compressedBackground = await compressImageSource(
+        bgPreview,
+        "background",
+      );
 
       const nextSettings = {
         ...settings,
@@ -73,38 +144,103 @@ export default function SettingsPage() {
         backgroundUrl: compressedBackground,
       };
 
-      localStorage.setItem(
-        FIELD_SETTINGS_STORAGE_KEY,
-        JSON.stringify(nextSettings),
-      );
+      setSaving(true);
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
 
+      const response = await fetch("/api/field-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ settings: nextSettings }),
+      });
+      const result = await response.json();
+      setSaving(false);
+
+      if (!response.ok || !result.ok) {
+        showToast(
+          "error",
+          "Настройките не са запазени",
+          result.message || "Пробвай пак след малко.",
+        );
+        return;
+      }
+
+      window.localStorage.removeItem(FIELD_SETTINGS_STORAGE_KEY);
       setSettings(nextSettings);
       setLogoPreview(compressedLogo);
       setBgPreview(compressedBackground);
 
-      alert("Настройките са запазени успешно.");
+      showToast(
+        "success",
+        "Запазено успешно",
+        "Промените са приложени и ще се виждат на всички устройства.",
+      );
     } catch {
-      alert(
-        "Снимките са прекалено големи за локално запазване. Пробвай с по-малки файлове.",
+      setSaving(false);
+      showToast(
+        "error",
+        "Снимките са прекалено големи",
+        "Пробвай с по-малки файлове или по-ниска резолюция.",
       );
     }
   }
 
-  function resetSettings() {
-    const confirmed = confirm("Да върна ли настройките по подразбиране?");
-    if (!confirmed) return;
-    localStorage.removeItem(FIELD_SETTINGS_STORAGE_KEY);
-    setSettings(DEFAULT_FIELD_SETTINGS);
-    setLogoPreview(DEFAULT_FIELD_SETTINGS.logoUrl);
-    setBgPreview(DEFAULT_FIELD_SETTINGS.backgroundUrl);
+  async function resetSettings() {
+    setConfirmResetOpen(false);
+    const nextSettings = DEFAULT_FIELD_SETTINGS;
+    setSettings(nextSettings);
+    setLogoPreview(nextSettings.logoUrl);
+    setBgPreview(nextSettings.backgroundUrl);
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    const response = await fetch("/api/field-settings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ settings: nextSettings }),
+    });
+
+    if (response.ok) {
+      showToast(
+        "success",
+        "Върнато по подразбиране",
+        "Профилът използва стандартната визия на BattleBooking.",
+      );
+    } else {
+      showToast(
+        "error",
+        "Не успях да върна настройките",
+        "Пробвай пак след малко.",
+      );
+    }
   }
 
   return (
     <AdminShell active="settings">
+      {toast && (
+        <BattleBookingToast toast={toast} onClose={() => setToast(null)} />
+      )}
+      {confirmResetOpen && (
+        <ConfirmResetModal
+          onCancel={() => setConfirmResetOpen(false)}
+          onConfirm={resetSettings}
+        />
+      )}
       <section className="space-y-5">
+        {loading && (
+          <div className="rounded-[2rem] border border-lime-400/15 bg-black/70 p-5 text-lime-200">
+            Зареждане на настройките...
+          </div>
+        )}
         <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">
-            Organizer Settings
+            Настройки
           </p>
           <h2 className="mt-2 text-4xl font-black">Настройки на игрището</h2>
           <p className="mt-3 max-w-3xl text-zinc-400">
@@ -115,7 +251,7 @@ export default function SettingsPage() {
 
         <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-5">
-            <Panel title="Branding">
+            <Panel title="Визия и информация">
               <TextInput
                 label="Име на игрището"
                 value={settings.name}
@@ -179,13 +315,18 @@ export default function SettingsPage() {
                   />
                   <div className="flex-1 space-y-3">
                     <UploadButton
-                      label="Качи logo на игрището"
+                      label="Качи лого"
                       onChange={(file) => handleImagePreview("logo", file)}
                     />
                     <select
                       className="bb-input"
                       value={settings.logoFit}
-                      onChange={(e) => updateField("logoFit", e.target.value as "contain" | "cover")}
+                      onChange={(e) =>
+                        updateField(
+                          "logoFit",
+                          e.target.value as "contain" | "cover",
+                        )
+                      }
                     >
                       <option value="contain">Побери цялото лого</option>
                       <option value="cover">Запълни кръга</option>
@@ -197,7 +338,9 @@ export default function SettingsPage() {
                         max={2.2}
                         step={0.05}
                         value={settings.logoScale}
-                        onChange={(value) => updateNumberField("logoScale", value)}
+                        onChange={(value) =>
+                          updateNumberField("logoScale", value)
+                        }
                       />
                       <RangeInput
                         label="Наляво / надясно"
@@ -217,15 +360,15 @@ export default function SettingsPage() {
                       />
                     </div>
                     <p className="text-xs leading-5 text-zinc-500">
-                      Логото ще се показва кръгло. Използвай настройките за
-                      zoom и позиция, за да го наместиш ръчно в кръга.
+                      Логото се показва в кръг. Използвай zoom и позиция, докато
+                      се виждат всички важни надписи.
                     </p>
                   </div>
                 </div>
               </div>
 
               <UploadButton
-                label="Качи тема / background"
+                label="Качи фон / cover снимка"
                 onChange={(file) => handleImagePreview("background", file)}
               />
             </Panel>
@@ -272,12 +415,13 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={saveSettings}
+                disabled={saving}
                 className="rounded-2xl bg-lime-500 px-5 py-4 font-black text-black hover:bg-lime-400"
               >
-                Запази настройките
+                {saving ? "Запазване..." : "Запази настройките"}
               </button>
               <button
-                onClick={resetSettings}
+                onClick={() => setConfirmResetOpen(true)}
                 className="rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-4 font-black text-white hover:bg-white/[0.1]"
               >
                 Върни по подразбиране
@@ -287,7 +431,7 @@ export default function SettingsPage() {
 
           <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5 backdrop-blur-xl">
             <p className="text-xs font-black uppercase tracking-[0.3em] text-lime-300">
-              Live Preview
+              Преглед на профила
             </p>
             <div
               className="mt-5 overflow-hidden rounded-[2rem] border border-lime-400/20 bg-cover bg-center"
@@ -323,6 +467,79 @@ export default function SettingsPage() {
         </div>
       </section>
     </AdminShell>
+  );
+}
+
+function BattleBookingToast({
+  toast,
+  onClose,
+}: {
+  toast: { type: "success" | "error"; title: string; message: string };
+  onClose: () => void;
+}) {
+  const isSuccess = toast.type === "success";
+
+  return (
+    <div className="fixed inset-x-3 top-24 z-[80] mx-auto max-w-md rounded-[1.6rem] border border-lime-400/25 bg-black/90 p-4 text-white shadow-[0_0_50px_rgba(149,201,0,.18)] backdrop-blur-2xl">
+      <div className="flex items-start gap-3">
+        <BattleBookingLogo variant="mark" showText={false} />
+        <div className="min-w-0 flex-1">
+          <p
+            className={`text-sm font-black ${isSuccess ? "text-lime-300" : "text-red-200"}`}
+          >
+            {isSuccess ? "✓ " : "! "}
+            {toast.title}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-zinc-300">
+            {toast.message}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-zinc-300 hover:bg-white/20"
+          aria-label="Затвори"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmResetModal({
+  onCancel,
+  onConfirm,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/72 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[2rem] border border-lime-400/20 bg-[#050805] p-6 text-white shadow-[0_0_60px_rgba(149,201,0,.16)]">
+        <BattleBookingLogo />
+        <h3 className="mt-5 text-2xl font-black">Връщане по подразбиране?</h3>
+        <p className="mt-3 leading-7 text-zinc-300">
+          Това ще върне стандартното име, лого, фон и описание на BattleBooking.
+        </p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 font-black text-white hover:bg-white/[0.12]"
+          >
+            Отказ
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-2xl bg-lime-500 px-4 py-3 font-black text-black hover:bg-lime-400"
+          >
+            Потвърждавам
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -412,7 +629,11 @@ function TextInput({
         maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
       />
-      {help && <span className="mt-2 block text-xs font-bold text-lime-300/80">{help}</span>}
+      {help && (
+        <span className="mt-2 block text-xs font-bold text-lime-300/80">
+          {help}
+        </span>
+      )}
     </label>
   );
 }

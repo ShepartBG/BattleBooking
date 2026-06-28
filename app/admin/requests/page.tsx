@@ -189,7 +189,7 @@ export default function RequestsPage() {
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">
-                  Owner Dashboard
+                  Owner панел
                 </p>
                 <h2 className="mt-2 text-4xl font-black">Field Requests</h2>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">

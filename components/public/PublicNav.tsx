@@ -63,7 +63,7 @@ export default function PublicNav() {
   }
 
   const dashboardHref = isOwnerEmail(userEmail) ? "/admin" : "/admin";
-  const dashboardLabel = isOwnerEmail(userEmail) ? "Admin" : "Dashboard";
+  const dashboardLabel = isOwnerEmail(userEmail) ? "Owner панел" : "Контролен панел";
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-black/85 backdrop-blur-2xl">

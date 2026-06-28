@@ -32,8 +32,7 @@ export default function ForgotPasswordPage() {
     setLoading(false);
 
     if (resetError) {
-      console.error("RESET PASSWORD ERROR:", resetError);
-      setError(`Грешка: ${resetError.message}`);
+      setError("Не успях да изпратя линк за нова парола. Провери имейла и опитай пак.");
       return;
     }
 

@@ -4,36 +4,16 @@ import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
 import { supabase } from "@/lib/supabase";
+import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
+import type { FieldSettingsRow } from "@/lib/fieldSettings";
 
-type PublicField = {
+type PublicField = FieldSettingsRow & {
   id: string;
   field_name: string;
   city: string | null;
   message: string | null;
-  facebook: string | null;
-  instagram: string | null;
-  tiktok: string | null;
   status: string;
 };
-
-function createSlug(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9а-яё]+/gi, "-")
-    .replace(/^-+|-+$/g, "") || "field";
-}
-
-function buildLocation(field: PublicField) {
-  return field.city?.trim() || "България";
-}
-
-function buildDescription(field: PublicField) {
-  return (
-    field.message?.trim() ||
-    "Активно игрище в BattleBooking. Виж активните игри и се запиши онлайн."
-  );
-}
 
 export default function FieldsPage() {
   const [fields, setFields] = useState<PublicField[]>([]);
@@ -45,7 +25,9 @@ export default function FieldsPage() {
 
       const { data, error } = await supabase
         .from("field_requests")
-        .select("id,field_name,city,message,facebook,instagram,tiktok,status")
+        .select(
+          "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
+        )
         .eq("status", "active")
         .order("field_name", { ascending: true });
 
@@ -87,18 +69,27 @@ export default function FieldsPage() {
               Зареждане на игрищата...
             </div>
           ) : fields.length > 0 ? (
-            fields.map((field) => (
-              <FieldCard
-                key={field.id}
-                name={field.field_name}
-                location={buildLocation(field)}
-                description={buildDescription(field)}
-                href={`/field/${createSlug(field.field_name)}`}
-                image="/warzone-bg.jpg"
-                logo="/warzone-logo.png"
-                status="Активно"
-              />
-            ))
+            fields.map((field) => {
+              const settings = rowToFieldSettings(field);
+              const slug = settings.slug || createFieldSlug(settings.name);
+
+              return (
+                <FieldCard
+                  key={field.id}
+                  name={settings.name}
+                  location={settings.settlement || settings.location || "България"}
+                  description={settings.description}
+                  href={`/field/${slug}`}
+                  image={settings.backgroundUrl}
+                  logo={settings.logoUrl}
+                  logoFit={settings.logoFit}
+                  logoScale={settings.logoScale}
+                  logoX={settings.logoX}
+                  logoY={settings.logoY}
+                  status="Активно"
+                />
+              );
+            })
           ) : (
             <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-zinc-400 backdrop-blur-xl">
               В момента няма активни игрища за показване.
