@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
 import { supabase } from "@/lib/supabase";
-import { useFieldSettings } from "@/lib/useFieldSettings";
+import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
@@ -15,24 +15,48 @@ type Game = {
   location: string;
   max_rental_sets: number;
   status: string;
+  field_id: string | null;
+};
+
+type PublicField = FieldSettings & {
+  id: string;
+  name: string;
 };
 
 export default function GamesPage() {
-  const fieldSettings = useFieldSettings();
   const [games, setGames] = useState<Game[]>([]);
+  const [fieldsById, setFieldsById] = useState<Record<string, PublicField>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadGames() {
       setLoading(true);
-      const { data } = await supabase
-        .from("games")
-        .select("id,title,game_date,game_time,location,max_rental_sets,status")
-        .in("status", ["active", "postponed"])
-        .gte("game_date", new Date().toISOString().slice(0, 10))
-        .order("game_date", { ascending: true });
 
-      setGames((data || []).filter(isGameStillPublic));
+      const [{ data }, fieldsResponse] = await Promise.all([
+        supabase
+          .from("games")
+          .select("id,title,game_date,game_time,location,max_rental_sets,status,field_id")
+          .in("status", ["active", "postponed"])
+          .gte("game_date", new Date().toISOString().slice(0, 10))
+          .order("game_date", { ascending: true }),
+        fetch(`/api/public-fields?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
+      ]);
+
+      let nextFieldsById: Record<string, PublicField> = {};
+
+      if (fieldsResponse?.ok) {
+        const result = await fieldsResponse.json().catch(() => null);
+        if (result?.ok && Array.isArray(result.fields)) {
+          nextFieldsById = Object.fromEntries(
+            result.fields
+              .filter((field: PublicField) => field?.id)
+              .map((field: PublicField) => [field.id, field]),
+          );
+        }
+      }
+
+      setFieldsById(nextFieldsById);
+      setGames(((data || []) as Game[]).filter(isGameStillPublic));
       setLoading(false);
     }
 
@@ -61,24 +85,30 @@ export default function GamesPage() {
               Зареждане на активни игри...
             </div>
           ) : games.length > 0 ? (
-            games.map((game) => (
-              <GameCard
-                key={game.id}
-                id={game.id}
-                title={game.title}
-                date={game.game_date}
-                time={game.game_time}
-                location={game.location}
-                maxRentalSets={game.max_rental_sets}
-                status={game.status}
-                fieldName={fieldSettings.name}
-                fieldLogo={fieldSettings.logoUrl}
-                logoFit={fieldSettings.logoFit}
-            logoScale={fieldSettings.logoScale}
-            logoX={fieldSettings.logoX}
-            logoY={fieldSettings.logoY}
-              />
-            ))
+            games.map((game) => {
+              const fieldSettings = game.field_id
+                ? fieldsById[game.field_id] || DEFAULT_FIELD_SETTINGS
+                : DEFAULT_FIELD_SETTINGS;
+
+              return (
+                <GameCard
+                  key={game.id}
+                  id={game.id}
+                  title={game.title}
+                  date={game.game_date}
+                  time={game.game_time}
+                  location={game.location}
+                  maxRentalSets={game.max_rental_sets}
+                  status={game.status}
+                  fieldName={fieldSettings.name}
+                  fieldLogo={fieldSettings.logoUrl}
+                  logoFit={fieldSettings.logoFit}
+                  logoScale={fieldSettings.logoScale}
+                  logoX={fieldSettings.logoX}
+                  logoY={fieldSettings.logoY}
+                />
+              );
+            })
           ) : (
             <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-zinc-400 backdrop-blur-xl">
               В момента няма активни игри.

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { isOwnerEmail } from "@/lib/access";
-import { resolveRealFieldId } from "@/lib/fieldIdentity";
+import { ensureRealFieldId } from "@/lib/fieldIdentity";
 
 export type CurrentFieldContext = {
   userEmail: string;
@@ -36,12 +36,12 @@ export async function getCurrentFieldContext(): Promise<CurrentFieldContext> {
     throw new Error("Не намерих активен профил/игрище за този акаунт.");
   }
 
-  const realFieldId = await resolveRealFieldId(supabase, fieldProfile);
+  const realFieldId = await ensureRealFieldId(supabase, fieldProfile);
 
   if (!realFieldId) {
     if (owner) return { userEmail, isOwner: true, fieldId: null };
     throw new Error(
-      "Не намерих реалния field_id за този организатор. Провери дали има ред в таблица fields със същото име/телефон като активната заявка.",
+      "Не намерих и не успях да създам реалния field_id за този организатор.",
     );
   }
 
