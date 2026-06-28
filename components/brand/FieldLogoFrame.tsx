@@ -1,7 +1,7 @@
 type Props = {
   src?: string;
   alt?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   fit?: "contain" | "cover";
   scale?: number;
@@ -10,7 +10,7 @@ type Props = {
 };
 
 export default function FieldLogoFrame({
-  src = "/warzone-logo.png",
+  src = "/battlebooking-real-logo-transparent.png",
   alt = "Field logo",
   size = "md",
   className = "",
@@ -23,11 +23,12 @@ export default function FieldLogoFrame({
     sm: "h-12 w-12 p-1.5",
     md: "h-20 w-20 p-2",
     lg: "h-32 w-32 p-2.5 md:h-36 md:w-36",
+    xl: "h-52 w-52 p-3 sm:h-60 sm:w-60",
   };
 
-  const safeScale = Number.isFinite(scale) ? Math.min(Math.max(scale, 0.7), 2.2) : 1;
-  const safeX = Number.isFinite(x) ? Math.min(Math.max(x, -45), 45) : 0;
-  const safeY = Number.isFinite(y) ? Math.min(Math.max(y, -45), 45) : 0;
+  const safeScale = Number.isFinite(scale) ? Math.min(Math.max(scale, 0.55), 2.6) : 1;
+  const safeX = Number.isFinite(x) ? Math.min(Math.max(x, -60), 60) : 0;
+  const safeY = Number.isFinite(y) ? Math.min(Math.max(y, -60), 60) : 0;
 
   return (
     <div

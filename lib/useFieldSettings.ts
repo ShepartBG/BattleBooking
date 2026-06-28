@@ -6,6 +6,7 @@ import {
   FIELD_SETTINGS_STORAGE_KEY,
   FieldSettings,
 } from "@/lib/fieldConfig";
+import { rowToFieldSettings } from "@/lib/fieldSettings";
 import { supabase } from "@/lib/supabase";
 
 export function readFieldSettings(): FieldSettings {
@@ -23,6 +24,22 @@ export function readFieldSettings(): FieldSettings {
   }
 }
 
+const PUBLIC_FIELD_COLUMNS =
+  "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone";
+
+async function loadPublicFieldSettings() {
+  const { data, error } = await supabase
+    .from("field_requests")
+    .select(PUBLIC_FIELD_COLUMNS)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return rowToFieldSettings(data);
+}
+
 export function useFieldSettings() {
   const [settings, setSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
 
@@ -35,20 +52,27 @@ export function useFieldSettings() {
 
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) return;
 
-      const response = await fetch("/api/field-settings", {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-      const result = await response.json().catch(() => null);
+      if (token) {
+        const response = await fetch("/api/field-settings", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        const result = await response.json().catch(() => null);
 
-      if (!mounted || !response.ok || !result?.ok) return;
+        if (mounted && response.ok && result?.ok) {
+          setSettings({
+            ...DEFAULT_FIELD_SETTINGS,
+            ...(result.settings as Partial<FieldSettings>),
+          });
+          return;
+        }
+      }
 
-      setSettings({
-        ...DEFAULT_FIELD_SETTINGS,
-        ...(result.settings as Partial<FieldSettings>),
-      });
+      const publicSettings = await loadPublicFieldSettings();
+      if (mounted && publicSettings) {
+        setSettings({ ...DEFAULT_FIELD_SETTINGS, ...publicSettings });
+      }
     }
 
     loadSettings();

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
+import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 
 const defaultRules = `1. Всички участници са длъжни да носят защитни очила през цялото време на игра.
 2. Забранено е свалянето на защитата в активната зона.
@@ -29,11 +30,12 @@ const gameTimeOptions = Array.from({ length: 48 }, (_, index) => {
 export default function NewGamePage() {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const { Dialog, bbAlert } = useBattleBookingDialog();
   const minDate = useMemo(() => new Date(), []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!selectedDate) return alert("Избери дата от календара.");
+    if (!selectedDate) return bbAlert("Избери дата от календара.", "Липсва дата");
 
     setLoading(true);
 
@@ -61,15 +63,16 @@ export default function NewGamePage() {
 
     setLoading(false);
 
-    if (error) return alert("Грешка при създаване: " + error.message);
+    if (error) return bbAlert("Грешка при създаване: " + error.message, "Грешка");
 
-    alert("Играта е създадена успешно!");
+    bbAlert("Играта е създадена успешно!", "Готово");
     form.reset();
     setSelectedDate(new Date());
   }
 
   return (
     <AdminShell active="new-game">
+      <Dialog />
       <section className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-5 backdrop-blur-xl md:p-7">
         <div className="mb-6">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">

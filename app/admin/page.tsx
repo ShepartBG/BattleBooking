@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
 import { isOwnerEmail } from "@/lib/access";
+import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 
 type Game = {
   id: string;
@@ -26,6 +27,7 @@ export default function AdminPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [isOwner, setIsOwner] = useState(false);
+  const { Dialog, bbAlert, bbConfirm, bbPrompt } = useBattleBookingDialog();
 
   async function loadPendingRequests() {
     const { count, error } = await supabase
@@ -42,7 +44,7 @@ export default function AdminPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) return alert("Грешка при зареждане: " + error.message);
+    if (error) return bbAlert("Грешка при зареждане: " + error.message, "Грешка");
     setGames(data || []);
   }
 
@@ -50,18 +52,20 @@ export default function AdminPage() {
     let postponedReason: string | null = null;
 
     if (newStatus === "postponed") {
-      const reason = prompt(
+      const reason = await bbPrompt(
         "Причина за отлагане:\n\nНапример: Лоши метеорологични условия или недостатъчен брой записани играчи.",
         "Играта се отлага поради организационни причини.",
+        "Отлагане на игра",
       );
 
       if (reason === null) return;
       postponedReason = reason.trim() || "Играта се отлага поради организационни причини.";
     } else {
-      const confirmed = confirm(
+      const confirmed = await bbConfirm(
         newStatus === "closed"
           ? "Сигурен ли си, че искаш да затвориш играта?"
           : "Сигурен ли си, че искаш да активираш играта?",
+        newStatus === "closed" ? "Затваряне на игра" : "Активиране на игра",
       );
 
       if (!confirmed) return;
@@ -76,14 +80,15 @@ export default function AdminPage() {
 
     const { error } = await supabase.from("games").update(payload).eq("id", gameId);
 
-    if (error) return alert("Грешка при промяна на статуса: " + error.message);
+    if (error) return bbAlert("Грешка при промяна на статуса: " + error.message, "Грешка");
     await loadGames();
   }
 
 
   async function deleteGame(gameId: string, title: string) {
-    const confirmed = confirm(
-      `Сигурен ли си, че искаш да изтриеш играта "${title}"?\n\nТова ще изтрие и записаните играчи към нея.`
+    const confirmed = await bbConfirm(
+      `Сигурен ли си, че искаш да изтриеш играта "${title}"?\n\nТова ще изтрие и записаните играчи към нея.`,
+      "Изтриване на игра",
     );
 
     if (!confirmed) return;
@@ -94,12 +99,12 @@ export default function AdminPage() {
       .eq("game_id", gameId);
 
     if (registrationsError) {
-      return alert("Грешка при изтриване на записванията: " + registrationsError.message);
+      return bbAlert("Грешка при изтриване на записванията: " + registrationsError.message, "Грешка");
     }
 
     const { error } = await supabase.from("games").delete().eq("id", gameId);
 
-    if (error) return alert("Грешка при изтриване на играта: " + error.message);
+    if (error) return bbAlert("Грешка при изтриване на играта: " + error.message, "Грешка");
     await loadGames();
   }
 
@@ -107,9 +112,9 @@ export default function AdminPage() {
     const link = `${window.location.origin}/game/${gameId}`;
     try {
       await navigator.clipboard.writeText(link);
-      alert("Линкът за записване е копиран!");
+      bbAlert("Линкът за записване е копиран!", "Готово");
     } catch {
-      alert("Не успях да копирам линка. Линк: " + link);
+      bbAlert("Не успях да копирам линка. Линк: " + link, "Грешка");
     }
   }
 
@@ -131,6 +136,7 @@ export default function AdminPage() {
 
   return (
     <AdminShell active="games">
+      <Dialog />
       <section className="space-y-4 sm:space-y-5">
         <div className="rounded-[1.75rem] border border-lime-400/15 bg-black/65 p-4 sm:rounded-[2rem] sm:p-6 backdrop-blur-xl">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">

@@ -29,6 +29,7 @@ export default function SettingsPage() {
     message: string;
   } | null>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [logoEditorOpen, setLogoEditorOpen] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -232,6 +233,21 @@ export default function SettingsPage() {
           onConfirm={resetSettings}
         />
       )}
+      {logoEditorOpen && (
+        <LogoEditorModal
+          logoPreview={logoPreview}
+          name={settings.name}
+          fit={settings.logoFit}
+          scale={settings.logoScale}
+          x={settings.logoX}
+          y={settings.logoY}
+          onFitChange={(value) => updateField("logoFit", value)}
+          onScaleChange={(value) => updateNumberField("logoScale", value)}
+          onXChange={(value) => updateNumberField("logoX", value)}
+          onYChange={(value) => updateNumberField("logoY", value)}
+          onClose={() => setLogoEditorOpen(false)}
+        />
+      )}
       <section className="space-y-5">
         {loading && (
           <div className="rounded-[2rem] border border-lime-400/15 bg-black/70 p-5 text-lime-200">
@@ -318,6 +334,13 @@ export default function SettingsPage() {
                       label="Качи лого"
                       onChange={(file) => handleImagePreview("logo", file)}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setLogoEditorOpen(true)}
+                      className="w-full rounded-2xl border border-lime-400/25 bg-black/45 px-4 py-3 font-black text-lime-200 transition hover:bg-lime-400 hover:text-black"
+                    >
+                      Настрой логото като във Facebook
+                    </button>
                     <select
                       className="bb-input"
                       value={settings.logoFit}
@@ -502,6 +525,91 @@ function BattleBookingToast({
         >
           ×
         </button>
+      </div>
+    </div>
+  );
+}
+
+function LogoEditorModal({
+  logoPreview,
+  name,
+  fit,
+  scale,
+  x,
+  y,
+  onFitChange,
+  onScaleChange,
+  onXChange,
+  onYChange,
+  onClose,
+}: {
+  logoPreview: string;
+  name: string;
+  fit: "contain" | "cover";
+  scale: number;
+  x: number;
+  y: number;
+  onFitChange: (value: "contain" | "cover") => void;
+  onScaleChange: (value: number) => void;
+  onXChange: (value: number) => void;
+  onYChange: (value: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/78 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-3xl rounded-[2rem] border border-lime-400/20 bg-[#050805] p-5 text-white shadow-[0_0_70px_rgba(149,201,0,.18)] sm:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.26em] text-lime-300">Лого</p>
+            <h3 className="mt-1 text-2xl font-black">Настрой позицията</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-2xl text-zinc-300 hover:bg-white/20"
+            aria-label="Затвори"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-6 md:grid-cols-[300px_1fr] md:items-center">
+          <div className="mx-auto rounded-[2rem] border border-lime-400/20 bg-[radial-gradient(circle_at_top,rgba(149,201,0,.18),transparent_45%),rgba(255,255,255,.04)] p-8">
+            <FieldLogoFrame
+              src={logoPreview}
+              alt={name}
+              size="xl"
+              fit={fit}
+              scale={scale}
+              x={x}
+              y={y}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <select
+              className="bb-input"
+              value={fit}
+              onChange={(e) => onFitChange(e.target.value as "contain" | "cover")}
+            >
+              <option value="contain">Побери цялото лого</option>
+              <option value="cover">Запълни кръга</option>
+            </select>
+            <RangeInput label="Размер / zoom" min={0.55} max={2.6} step={0.05} value={scale} onChange={onScaleChange} />
+            <RangeInput label="Наляво / надясно" min={-60} max={60} step={1} value={x} onChange={onXChange} />
+            <RangeInput label="Нагоре / надолу" min={-60} max={60} step={1} value={y} onChange={onYChange} />
+            <p className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-zinc-400">
+              Настрой логото тук и натисни „Готово“. След това задължително натисни „Запази настройките“, за да се вижда от всички устройства.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full rounded-2xl bg-lime-500 px-5 py-4 font-black text-black hover:bg-lime-400"
+            >
+              Готово
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

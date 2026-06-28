@@ -5,6 +5,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import OwnerGuard from "@/components/auth/OwnerGuard";
 import { supabase } from "@/lib/supabase";
 import { fieldRequestDecisionEmail } from "@/lib/email/fieldRequestEmails";
+import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 
 type RequestStatus = "pending" | "payment_pending" | "active" | "suspended" | "rejected";
 
@@ -62,6 +63,7 @@ export default function RequestsPage() {
   const [selected, setSelected] = useState<FieldRequest | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { Dialog, bbAlert, bbConfirm } = useBattleBookingDialog();
 
   async function loadRequests() {
     setLoading(true);
@@ -74,7 +76,7 @@ export default function RequestsPage() {
     setLoading(false);
 
     if (error) {
-      alert("Грешка при зареждане на заявките: " + error.message);
+      bbAlert("Грешка при зареждане на заявките: " + error.message, "Грешка");
       return;
     }
 
@@ -82,10 +84,11 @@ export default function RequestsPage() {
   }
 
   async function updateStatus(request: FieldRequest, status: RequestStatus) {
-    const confirmed = confirm(
+    const confirmed = await bbConfirm(
       `Сигурен ли си, че искаш да смениш статуса на "${statusConfig[status].label}"?
 
-Ако избираш Approve, системата ще създаде login акаунт, ще активира 1 месец безплатен тест и ще изпрати email с линк за задаване на парола.`,
+Ако избираш Approve, системата ще създаде login акаунт, ще активира 1 месец безплатен тест и ще изпрати email.`,
+      "Промяна на достъп",
     );
 
     if (!confirmed) return;
@@ -103,7 +106,7 @@ export default function RequestsPage() {
     setSavingId(null);
 
     if (!response.ok || !result?.ok) {
-      alert(result?.message || "Грешка при промяна на статуса.");
+      bbAlert(result?.message || "Грешка при промяна на статуса.", "Грешка");
       return;
     }
 
@@ -112,10 +115,11 @@ export default function RequestsPage() {
   }
 
   async function deleteRequest(request: FieldRequest) {
-    const confirmed = confirm(
+    const confirmed = await bbConfirm(
       `Сигурен ли си, че искаш да изтриеш заявката за "${request.field_name}"?
 
 Това действие е необратимо. След изтриване можеш да подадеш нова тестова заявка със същия телефон или email.`,
+      "Изтриване на заявка",
     );
 
     if (!confirmed) return;
@@ -134,9 +138,10 @@ export default function RequestsPage() {
 
       if (directResult.error) {
         setDeletingId(null);
-        alert(
+        bbAlert(
           "Заявката не беше изтрита. Пусни SQL файла supabase-v6.7.4-force-delete.sql в Supabase и пробвай пак. Детайл: " +
             directResult.error.message,
+          "Грешка",
         );
         return;
       }
@@ -151,8 +156,9 @@ export default function RequestsPage() {
     setDeletingId(null);
 
     if (verifyResult.data) {
-      alert(
+      bbAlert(
         "Delete бутонът работи, но Supabase още блокира реалното триене. Пусни SQL файла supabase-v6.7.4-force-delete.sql в Supabase SQL Editor → New Query → Run и пробвай пак.",
+        "Supabase блокира триенето",
       );
       await loadRequests();
       return;
@@ -183,6 +189,7 @@ export default function RequestsPage() {
 
   return (
     <AdminShell active="requests">
+      <Dialog />
       <OwnerGuard>
         <section className="space-y-5">
           <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">

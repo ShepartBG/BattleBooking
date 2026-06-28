@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
+import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 
 type Registration = {
   id: string;
@@ -40,9 +41,10 @@ export default function GamePlayersPage() {
   const [players, setPlayers] = useState<Registration[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
+  const { Dialog, bbAlert, bbConfirm } = useBattleBookingDialog();
 
   async function cancelPlayer(playerId: string) {
-    const confirmed = confirm("Сигурен ли си, че искаш да анулираш този играч?");
+    const confirmed = await bbConfirm("Сигурен ли си, че искаш да анулираш този играч?", "Анулиране на играч");
     if (!confirmed) return;
 
     const { error } = await supabase
@@ -50,7 +52,7 @@ export default function GamePlayersPage() {
       .update({ status: "cancelled" })
       .eq("id", playerId);
 
-    if (error) return alert("Грешка при анулиране: " + error.message);
+    if (error) return bbAlert("Грешка при анулиране: " + error.message, "Грешка");
     await loadData();
   }
 
@@ -64,7 +66,7 @@ export default function GamePlayersPage() {
       .single();
 
     if (gameError) {
-      alert("Грешка при зареждане на играта: " + gameError.message);
+      bbAlert("Грешка при зареждане на играта: " + gameError.message, "Грешка");
       setLoading(false);
       return;
     }
@@ -77,7 +79,7 @@ export default function GamePlayersPage() {
       .order("created_at", { ascending: true });
 
     if (playersError) {
-      alert("Грешка при зареждане на играчите: " + playersError.message);
+      bbAlert("Грешка при зареждане на играчите: " + playersError.message, "Грешка");
       setLoading(false);
       return;
     }
@@ -92,7 +94,7 @@ export default function GamePlayersPage() {
       .eq("status", "active");
 
     if (previousError) {
-      alert("Грешка при проверка за ветерани: " + previousError.message);
+      bbAlert("Грешка при проверка за ветерани: " + previousError.message, "Грешка");
       setLoading(false);
       return;
     }
@@ -125,6 +127,7 @@ export default function GamePlayersPage() {
 
   return (
     <AdminShell active="games">
+      <Dialog />
       <section className="space-y-5">
         <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
           <a href="/admin" className="text-sm font-black text-lime-300">
