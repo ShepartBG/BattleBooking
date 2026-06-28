@@ -8,8 +8,6 @@ import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { supabase } from "@/lib/supabase";
 import { useFieldSettings } from "@/lib/useFieldSettings";
 import { isGameStillPublic } from "@/lib/gameVisibility";
-import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
-import type { FieldSettingsRow } from "@/lib/fieldSettings";
 
 type Game = {
   id: string;
@@ -21,12 +19,19 @@ type Game = {
   status: string;
 };
 
-type PublicField = FieldSettingsRow & {
+type PublicField = {
   id: string;
-  field_name: string;
-  city: string | null;
-  message: string | null;
-  status: string;
+  name: string;
+  slug: string;
+  settlement: string;
+  location: string;
+  description: string;
+  backgroundUrl: string;
+  logoUrl: string;
+  logoFit: "contain" | "cover";
+  logoScale: number;
+  logoX: number;
+  logoY: number;
 };
 
 export default function HomePage() {
@@ -36,7 +41,7 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadData() {
-      const [gamesResult, fieldsResult] = await Promise.all([
+      const [gamesResult, fieldsResponse] = await Promise.all([
         supabase
           .from("games")
           .select("id,title,game_date,game_time,location,max_rental_sets,status")
@@ -44,16 +49,13 @@ export default function HomePage() {
           .gte("game_date", new Date().toISOString().slice(0, 10))
           .order("game_date", { ascending: true })
           .limit(12),
-        supabase
-          .from("field_requests")
-          .select("id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone")
-          .eq("status", "active")
-          .order("field_name", { ascending: true })
-          .limit(3),
+        fetch(`/api/public-fields?t=${Date.now()}`, { cache: "no-store" }),
       ]);
 
+      const fieldsResult = await fieldsResponse.json().catch(() => null);
+
       setGames((gamesResult.data || []).filter(isGameStillPublic).slice(0, 3));
-      setFields((fieldsResult.data || []) as PublicField[]);
+      setFields(((fieldsResult?.fields || []) as PublicField[]).slice(0, 3));
     }
 
     loadData();
@@ -186,27 +188,22 @@ export default function HomePage() {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
           {fields.length > 0 ? (
-            fields.map((field) => {
-              const settings = rowToFieldSettings(field);
-              const slug = settings.slug || createFieldSlug(settings.name);
-
-              return (
-                <FieldCard
-                  key={field.id}
-                  name={settings.name}
-                  location={settings.settlement || settings.location || "България"}
-                  description={settings.description}
-                  href={`/field/${slug}`}
-                  image={settings.backgroundUrl}
-                  logo={settings.logoUrl}
-                  logoFit={settings.logoFit}
-                  logoScale={settings.logoScale}
-                  logoX={settings.logoX}
-                  logoY={settings.logoY}
-                  status="Активно"
-                />
-              );
-            })
+            fields.map((field) => (
+              <FieldCard
+                key={field.id}
+                name={field.name}
+                location={field.settlement || field.location || "България"}
+                description={field.description}
+                href={`/field/${field.slug}`}
+                image={field.backgroundUrl}
+                logo={field.logoUrl}
+                logoFit={field.logoFit}
+                logoScale={field.logoScale}
+                logoX={field.logoX}
+                logoY={field.logoY}
+                status="Активно"
+              />
+            ))
           ) : (
             <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-zinc-400 backdrop-blur-xl">
               В момента няма активни игрища за показване.

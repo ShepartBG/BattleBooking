@@ -6,7 +6,6 @@ import {
   FIELD_SETTINGS_STORAGE_KEY,
   FieldSettings,
 } from "@/lib/fieldConfig";
-import { rowToFieldSettings } from "@/lib/fieldSettings";
 import { supabase } from "@/lib/supabase";
 
 export function readFieldSettings(): FieldSettings {
@@ -24,20 +23,23 @@ export function readFieldSettings(): FieldSettings {
   }
 }
 
-const PUBLIC_FIELD_COLUMNS =
-  "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone";
-
 async function loadPublicFieldSettings() {
-  const { data, error } = await supabase
-    .from("field_requests")
-    .select(PUBLIC_FIELD_COLUMNS)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  try {
+    const response = await fetch(`/api/public-fields?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
+    const firstField = result?.fields?.[0];
 
-  if (error || !data) return null;
-  return rowToFieldSettings(data);
+    if (!response.ok || !result?.ok || !firstField) return null;
+
+    return {
+      ...DEFAULT_FIELD_SETTINGS,
+      ...firstField,
+    } as FieldSettings;
+  } catch {
+    return null;
+  }
 }
 
 export function useFieldSettings() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
@@ -122,7 +122,14 @@ export default function SettingsPage() {
 
       if (type === "logo") {
         setLogoPreview(imageData);
-        updateField("logoUrl", imageData);
+        setSettings((current) => ({
+          ...current,
+          logoUrl: imageData,
+          logoFit: "contain",
+          logoScale: 1,
+          logoX: 0,
+          logoY: 0,
+        }));
       } else {
         setBgPreview(imageData);
         updateField("backgroundUrl", imageData);
@@ -339,52 +346,10 @@ export default function SettingsPage() {
                       onClick={() => setLogoEditorOpen(true)}
                       className="w-full rounded-2xl border border-lime-400/25 bg-black/45 px-4 py-3 font-black text-lime-200 transition hover:bg-lime-400 hover:text-black"
                     >
-                      Настрой логото като във Facebook
+                      Изрежи и намести логото
                     </button>
-                    <select
-                      className="bb-input"
-                      value={settings.logoFit}
-                      onChange={(e) =>
-                        updateField(
-                          "logoFit",
-                          e.target.value as "contain" | "cover",
-                        )
-                      }
-                    >
-                      <option value="contain">Побери цялото лого</option>
-                      <option value="cover">Запълни кръга</option>
-                    </select>
-                    <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/35 p-3">
-                      <RangeInput
-                        label="Размер / zoom"
-                        min={0.7}
-                        max={2.2}
-                        step={0.05}
-                        value={settings.logoScale}
-                        onChange={(value) =>
-                          updateNumberField("logoScale", value)
-                        }
-                      />
-                      <RangeInput
-                        label="Наляво / надясно"
-                        min={-45}
-                        max={45}
-                        step={1}
-                        value={settings.logoX}
-                        onChange={(value) => updateNumberField("logoX", value)}
-                      />
-                      <RangeInput
-                        label="Нагоре / надолу"
-                        min={-45}
-                        max={45}
-                        step={1}
-                        value={settings.logoY}
-                        onChange={(value) => updateNumberField("logoY", value)}
-                      />
-                    </div>
                     <p className="text-xs leading-5 text-zinc-500">
-                      Логото се показва в кръг. Използвай zoom и позиция, докато
-                      се виждат всички важни надписи.
+                      Отвори редактора, хвани снимката с мишката или пръст и я намести в кръга.
                     </p>
                   </div>
                 </div>
@@ -555,13 +520,72 @@ function LogoEditorModal({
   onYChange: (value: number) => void;
   onClose: () => void;
 }) {
+  const dragRef = useRef<{
+    active: boolean;
+    startClientX: number;
+    startClientY: number;
+    startX: number;
+    startY: number;
+  }>({
+    active: false,
+    startClientX: 0,
+    startClientY: 0,
+    startX: x,
+    startY: y,
+  });
+
+  const safeScale = Number.isFinite(scale) ? Math.min(Math.max(scale, 0.6), 3) : 1;
+  const safeX = Number.isFinite(x) ? Math.min(Math.max(x, -70), 70) : 0;
+  const safeY = Number.isFinite(y) ? Math.min(Math.max(y, -70), 70) : 0;
+
+  function startDrag(clientX: number, clientY: number) {
+    dragRef.current = {
+      active: true,
+      startClientX: clientX,
+      startClientY: clientY,
+      startX: safeX,
+      startY: safeY,
+    };
+  }
+
+  function moveDrag(clientX: number, clientY: number) {
+    if (!dragRef.current.active) return;
+
+    const dx = clientX - dragRef.current.startClientX;
+    const dy = clientY - dragRef.current.startClientY;
+    const nextX = Math.min(Math.max(dragRef.current.startX + dx / 2.2, -70), 70);
+    const nextY = Math.min(Math.max(dragRef.current.startY + dy / 2.2, -70), 70);
+
+    onXChange(Math.round(nextX));
+    onYChange(Math.round(nextY));
+  }
+
+  function stopDrag() {
+    dragRef.current.active = false;
+  }
+
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/78 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-3xl rounded-[2rem] border border-lime-400/20 bg-[#050805] p-5 text-white shadow-[0_0_70px_rgba(149,201,0,.18)] sm:p-6">
+    <div
+      className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4 backdrop-blur-sm"
+      onMouseMove={(event) => moveDrag(event.clientX, event.clientY)}
+      onMouseUp={stopDrag}
+      onMouseLeave={stopDrag}
+      onTouchMove={(event) => {
+        const touch = event.touches[0];
+        if (touch) moveDrag(touch.clientX, touch.clientY);
+      }}
+      onTouchEnd={stopDrag}
+    >
+      <div className="w-full max-w-4xl rounded-[2rem] border border-lime-400/20 bg-[#050805] p-5 text-white shadow-[0_0_70px_rgba(149,201,0,.18)] sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.26em] text-lime-300">Лого</p>
-            <h3 className="mt-1 text-2xl font-black">Настрой позицията</h3>
+            <p className="text-xs font-black uppercase tracking-[0.26em] text-lime-300">
+              Лого
+            </p>
+            <h3 className="mt-1 text-2xl font-black">Изрежи и намести логото</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+              Хвани самата снимка и я премести в кръга. С плъзгача отдолу настрой zoom-а.
+            </p>
           </div>
           <button
             type="button"
@@ -573,41 +597,84 @@ function LogoEditorModal({
           </button>
         </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-[300px_1fr] md:items-center">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr] lg:items-center">
           <div className="mx-auto rounded-[2rem] border border-lime-400/20 bg-[radial-gradient(circle_at_top,rgba(149,201,0,.18),transparent_45%),rgba(255,255,255,.04)] p-8">
-            <FieldLogoFrame
-              src={logoPreview}
-              alt={name}
-              size="xl"
-              fit={fit}
-              scale={scale}
-              x={x}
-              y={y}
-            />
+            <div
+              className="relative h-72 w-72 cursor-grab touch-none overflow-hidden rounded-full border-2 border-lime-400/45 bg-black/70 shadow-[0_0_55px_rgba(149,201,0,.16)] active:cursor-grabbing"
+              onMouseDown={(event) => startDrag(event.clientX, event.clientY)}
+              onTouchStart={(event) => {
+                const touch = event.touches[0];
+                if (touch) startDrag(touch.clientX, touch.clientY);
+              }}
+            >
+              <div className="pointer-events-none absolute inset-0 z-20 rounded-full ring-4 ring-black/50" />
+              <div className="pointer-events-none absolute left-1/2 top-0 z-20 h-full w-px -translate-x-1/2 bg-white/10" />
+              <div className="pointer-events-none absolute left-0 top-1/2 z-20 h-px w-full -translate-y-1/2 bg-white/10" />
+              <img
+                src={logoPreview}
+                alt={name}
+                draggable={false}
+                className={`relative z-10 h-full w-full select-none ${fit === "cover" ? "object-cover" : "object-contain"}`}
+                style={{
+                  transform: `translate(${safeX}%, ${safeY}%) scale(${safeScale})`,
+                  transformOrigin: "center",
+                }}
+              />
+            </div>
           </div>
 
           <div className="space-y-4">
-            <select
-              className="bb-input"
-              value={fit}
-              onChange={(e) => onFitChange(e.target.value as "contain" | "cover")}
-            >
-              <option value="contain">Побери цялото лого</option>
-              <option value="cover">Запълни кръга</option>
-            </select>
-            <RangeInput label="Размер / zoom" min={0.55} max={2.6} step={0.05} value={scale} onChange={onScaleChange} />
-            <RangeInput label="Наляво / надясно" min={-60} max={60} step={1} value={x} onChange={onXChange} />
-            <RangeInput label="Нагоре / надолу" min={-60} max={60} step={1} value={y} onChange={onYChange} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => onFitChange("contain")}
+                className={`rounded-2xl border px-4 py-3 font-black ${fit === "contain" ? "border-lime-400 bg-lime-400 text-black" : "border-white/10 bg-white/[0.05] text-white hover:bg-white/[0.1]"}`}
+              >
+                Побери цялото лого
+              </button>
+              <button
+                type="button"
+                onClick={() => onFitChange("cover")}
+                className={`rounded-2xl border px-4 py-3 font-black ${fit === "cover" ? "border-lime-400 bg-lime-400 text-black" : "border-white/10 bg-white/[0.05] text-white hover:bg-white/[0.1]"}`}
+              >
+                Запълни кръга
+              </button>
+            </div>
+
+            <RangeInput
+              label="Zoom"
+              min={0.6}
+              max={3}
+              step={0.05}
+              value={safeScale}
+              onChange={onScaleChange}
+            />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onScaleChange(1);
+                  onXChange(0);
+                  onYChange(0);
+                  onFitChange("contain");
+                }}
+                className="rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-4 font-black text-white hover:bg-white/[0.1]"
+              >
+                Центрирай
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-2xl bg-lime-500 px-5 py-4 font-black text-black hover:bg-lime-400"
+              >
+                Готово
+              </button>
+            </div>
+
             <p className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-zinc-400">
-              Настрой логото тук и натисни „Готово“. След това задължително натисни „Запази настройките“, за да се вижда от всички устройства.
+              След „Готово“ натисни „Запази настройките“, за да се вижда логото правилно и за гостите, и на телефона.
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full rounded-2xl bg-lime-500 px-5 py-4 font-black text-black hover:bg-lime-400"
-            >
-              Готово
-            </button>
           </div>
         </div>
       </div>

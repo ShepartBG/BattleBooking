@@ -7,8 +7,6 @@ import GameCard from "@/components/public/GameCard";
 import { supabase } from "@/lib/supabase";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
-import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
-import type { FieldSettingsRow } from "@/lib/fieldSettings";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
@@ -18,12 +16,6 @@ type Game = {
   game_time: string;
   location: string;
   max_rental_sets: number;
-  status: string;
-};
-
-type PublicField = FieldSettingsRow & {
-  id: string;
-  field_name: string;
   status: string;
 };
 
@@ -38,33 +30,32 @@ export default function FieldPage() {
     async function loadField() {
       setLoadingField(true);
 
-      const { data, error } = await supabase
-        .from("field_requests")
-        .select(
-          "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
-        )
-        .eq("status", "active");
+      try {
+        const response = await fetch(`/api/public-fields?slug=${encodeURIComponent(slug)}&t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        const result = await response.json();
 
-      if (error) {
-        console.error("Field load error:", error.message);
+        if (!response.ok || !result.ok) {
+          console.error("Field load error:", result.message);
+          setLoadingField(false);
+          return;
+        }
+
+        if (result.field) {
+          setFieldSettings({
+            ...DEFAULT_FIELD_SETTINGS,
+            ...result.field,
+          });
+        }
+      } catch (error) {
+        console.error("Field load error:", error);
+      } finally {
         setLoadingField(false);
-        return;
       }
-
-      const fields = (data || []) as PublicField[];
-      const matched = fields.find((field) => {
-        const settings = rowToFieldSettings(field);
-        return settings.slug === slug || createFieldSlug(settings.name) === slug;
-      });
-
-      if (matched) {
-        setFieldSettings(rowToFieldSettings(matched));
-      }
-
-      setLoadingField(false);
     }
 
-    loadField();
+    if (slug) loadField();
   }, [slug]);
 
   useEffect(() => {

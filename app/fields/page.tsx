@@ -3,16 +3,20 @@
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
-import { supabase } from "@/lib/supabase";
-import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
-import type { FieldSettingsRow } from "@/lib/fieldSettings";
 
-type PublicField = FieldSettingsRow & {
+type PublicField = {
   id: string;
-  field_name: string;
-  city: string | null;
-  message: string | null;
-  status: string;
+  name: string;
+  slug: string;
+  settlement: string;
+  location: string;
+  description: string;
+  backgroundUrl: string;
+  logoUrl: string;
+  logoFit: "contain" | "cover";
+  logoScale: number;
+  logoX: number;
+  logoY: number;
 };
 
 export default function FieldsPage() {
@@ -23,23 +27,25 @@ export default function FieldsPage() {
     async function loadFields() {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("field_requests")
-        .select(
-          "id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
-        )
-        .eq("status", "active")
-        .order("field_name", { ascending: true });
+      try {
+        const response = await fetch(`/api/public-fields?t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        const result = await response.json();
 
-      setLoading(false);
+        if (!response.ok || !result.ok) {
+          console.error("Public fields load error:", result.message);
+          setFields([]);
+          return;
+        }
 
-      if (error) {
-        console.error("Fields load error:", error.message);
+        setFields(result.fields || []);
+      } catch (error) {
+        console.error("Public fields load error:", error);
         setFields([]);
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setFields((data || []) as PublicField[]);
     }
 
     loadFields();
@@ -69,27 +75,22 @@ export default function FieldsPage() {
               Зареждане на игрищата...
             </div>
           ) : fields.length > 0 ? (
-            fields.map((field) => {
-              const settings = rowToFieldSettings(field);
-              const slug = settings.slug || createFieldSlug(settings.name);
-
-              return (
-                <FieldCard
-                  key={field.id}
-                  name={settings.name}
-                  location={settings.settlement || settings.location || "България"}
-                  description={settings.description}
-                  href={`/field/${slug}`}
-                  image={settings.backgroundUrl}
-                  logo={settings.logoUrl}
-                  logoFit={settings.logoFit}
-                  logoScale={settings.logoScale}
-                  logoX={settings.logoX}
-                  logoY={settings.logoY}
-                  status="Активно"
-                />
-              );
-            })
+            fields.map((field) => (
+              <FieldCard
+                key={field.id}
+                name={field.name}
+                location={field.settlement || field.location || "България"}
+                description={field.description}
+                href={`/field/${field.slug}`}
+                image={field.backgroundUrl}
+                logo={field.logoUrl}
+                logoFit={field.logoFit}
+                logoScale={field.logoScale}
+                logoX={field.logoX}
+                logoY={field.logoY}
+                status="Активно"
+              />
+            ))
           ) : (
             <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-zinc-400 backdrop-blur-xl">
               В момента няма активни игрища за показване.
