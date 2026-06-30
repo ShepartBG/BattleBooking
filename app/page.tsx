@@ -6,7 +6,7 @@ import FieldCard from "@/components/public/FieldCard";
 import GameCard from "@/components/public/GameCard";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { supabase } from "@/lib/supabase";
-import { useFieldSettings } from "@/lib/useFieldSettings";
+import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
@@ -17,9 +17,10 @@ type Game = {
   location: string;
   max_rental_sets: number;
   status: string;
+  field_id: string | null;
 };
 
-type PublicField = {
+type PublicField = FieldSettings & {
   id: string;
   name: string;
   slug: string;
@@ -35,16 +36,16 @@ type PublicField = {
 };
 
 export default function HomePage() {
-  const fieldSettings = useFieldSettings();
   const [games, setGames] = useState<Game[]>([]);
   const [fields, setFields] = useState<PublicField[]>([]);
+  const [fieldsById, setFieldsById] = useState<Record<string, PublicField>>({});
 
   useEffect(() => {
     async function loadData() {
       const [gamesResult, fieldsResponse] = await Promise.all([
         supabase
           .from("games")
-          .select("id,title,game_date,game_time,location,max_rental_sets,status")
+          .select("id,title,game_date,game_time,location,max_rental_sets,status,field_id")
           .in("status", ["active", "postponed"])
           .gte("game_date", new Date().toISOString().slice(0, 10))
           .order("game_date", { ascending: true })
@@ -54,8 +55,11 @@ export default function HomePage() {
 
       const fieldsResult = await fieldsResponse.json().catch(() => null);
 
-      setGames((gamesResult.data || []).filter(isGameStillPublic).slice(0, 3));
-      setFields(((fieldsResult?.fields || []) as PublicField[]).slice(0, 3));
+      const publicFields = ((fieldsResult?.fields || []) as PublicField[]).filter((field) => field?.id);
+
+      setFieldsById(Object.fromEntries(publicFields.map((field) => [field.id, field])));
+      setGames(((gamesResult.data || []) as Game[]).filter(isGameStillPublic).slice(0, 3));
+      setFields(publicFields.slice(0, 3));
     }
 
     loadData();
@@ -230,7 +234,12 @@ export default function HomePage() {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
           {games.length > 0 ? (
-            games.map((game) => (
+            games.map((game) => {
+              const fieldSettings = game.field_id
+                ? fieldsById[game.field_id] || DEFAULT_FIELD_SETTINGS
+                : DEFAULT_FIELD_SETTINGS;
+
+              return (
               <GameCard
                 key={game.id}
                 id={game.id}
@@ -247,7 +256,8 @@ export default function HomePage() {
                 logoX={fieldSettings.logoX}
                 logoY={fieldSettings.logoY}
               />
-            ))
+              );
+            })
           ) : (
             <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-zinc-400 backdrop-blur-xl">
               В момента няма заредени активни игри за показване.
