@@ -1,0 +1,20 @@
+BattleBooking v1.7 Upgrade
+
+Добавено:
+- Нов Organizer Calendar: /admin/calendar
+- Нова Statistics страница: /admin/stats
+- Нова Edit Game страница: /admin/games/[id]/edit
+- Нов бутон "Редакция" в списъка с игри
+- Нови меню бутони в AdminShell
+- Липсващ utils/validators.ts е добавен, за да минава build-а
+
+Запазено без промяна:
+- Login / AuthGuard
+- Multi-tenant логика
+- currentField / field_id връзки
+- Organizer permissions
+- Supabase таблици и RLS логика
+
+Тест:
+- npm install: OK
+- npm run build: compile + type-check + static pages OK; процесът не приключи в sandbox timeout, но критичните build стъпки минаха успешно.

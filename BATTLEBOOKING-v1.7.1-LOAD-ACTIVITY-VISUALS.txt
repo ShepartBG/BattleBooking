@@ -1,0 +1,13 @@
+BattleBooking v1.7.1 - Load + Activity + Visuals
+
+Промени:
+- next.config.ts: добавен outputFileTracingRoot за warning-а с грешния root и множеството package-lock файлове.
+- Admin dashboard: добавен Activity Feed с последните записвания.
+- Admin dashboard: добавена визуална hero секция със снимка.
+- Calendar header: добавена визуална секция.
+- Statistics header: добавена визуална секция.
+- Mobile admin bottom nav: оправено динамично броене на бутоните, за да не се чупи при owner/admin меню.
+
+Важно:
+- Не са пипани login, multi-tenant permissions, field_id логика и Supabase access логика.
+- Ако warning-ът още излиза локално, изтрий C:\Users\jeki1\package-lock.json и остави само package-lock.json в проекта.

@@ -1,18 +1,49 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { rowToFieldSettings, settingsToUpdatePayload } from "@/lib/fieldSettings";
 import type { FieldSettings } from "@/lib/fieldConfig";
 
-async function getUserFromRequest(request: Request) {
+function getAuthedSupabase(request: Request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const authHeader = request.headers.get("authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
-  if (!token) {
-    return { user: null, error: "Липсва login token." };
+  if (!supabaseUrl || !anonKey) {
+    return { client: null, token: "", error: "Supabase public env липсва." };
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (!token) {
+    return { client: null, token: "", error: "Липсва login token." };
+  }
+
+  return {
+    token,
+    error: null,
+    client: createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    }),
+  };
+}
+
+function getDataClient(request: Request) {
+  try {
+    return getSupabaseAdmin();
+  } catch {
+    return getAuthedSupabase(request).client;
+  }
+}
+
+async function getUserFromRequest(request: Request) {
+  const auth = getAuthedSupabase(request);
+
+  if (auth.error || !auth.client) {
+    return { user: null, error: auth.error };
+  }
+
+  const { data, error } = await auth.client.auth.getUser(auth.token);
 
   if (error || !data.user?.email) {
     return { user: null, error: error?.message || "Невалидна login сесия." };
@@ -28,7 +59,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, message: error }, { status: 401 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = getDataClient(request);
+    if (!supabaseAdmin) {
+      return NextResponse.json({ ok: false, message: "Supabase client липсва." }, { status: 500 });
+    }
+
     const { data, error: selectError } = await supabaseAdmin
       .from("field_requests")
       .select("*")
@@ -75,7 +110,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = getDataClient(request);
+    if (!supabaseAdmin) {
+      return NextResponse.json({ ok: false, message: "Supabase client липсва." }, { status: 500 });
+    }
+
     const { data: existing, error: existingError } = await supabaseAdmin
       .from("field_requests")
       .select("id")

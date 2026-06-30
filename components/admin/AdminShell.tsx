@@ -9,13 +9,15 @@ import { useRouter } from "next/navigation";
 import { isOwnerEmail } from "@/lib/access";
 
 type Props = {
-  active: "games" | "new-game" | "settings" | "requests";
+  active: "games" | "new-game" | "calendar" | "stats" | "settings" | "requests";
   children: ReactNode;
 };
 
 const adminLinks = [
   { key: "games", href: "/admin", label: "Игри" },
   { key: "new-game", href: "/admin/new-game", label: "Нова игра" },
+  { key: "calendar", href: "/admin/calendar", label: "Календар" },
+  { key: "stats", href: "/admin/stats", label: "Статистика" },
   { key: "requests", href: "/admin/requests", label: "Заявки" },
   { key: "settings", href: "/admin/settings", label: "Настройки" },
 ] as const;
@@ -61,14 +63,16 @@ export default function AdminShell({ active, children }: Props) {
             <div className="flex items-center gap-3 lg:block">
               <BattleBookingLogo variant="mark" showText={false} />
               <div>
-                <h1 className="text-2xl font-black lg:mt-6 lg:text-3xl">Контролен панел</h1>
+                <h1 className="text-2xl font-black lg:mt-6 lg:text-3xl">
+                  Контролен панел
+                </h1>
                 <p className="mt-1 text-xs leading-5 text-zinc-500 lg:mt-2">
                   Управление на игри, записвания и профил.
                 </p>
               </div>
             </div>
 
-            <nav className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold text-zinc-300 sm:grid-cols-4 lg:mt-8 lg:block lg:space-y-2">
+            <nav className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold text-zinc-300 sm:grid-cols-6 lg:mt-8 lg:block lg:space-y-2">
               {visibleAdminLinks.map((link) => (
                 <a
                   key={link.key}
@@ -97,7 +101,12 @@ export default function AdminShell({ active, children }: Props) {
         </div>
 
         <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/86 px-2 py-2 backdrop-blur-2xl lg:hidden">
-          <div className="mx-auto grid max-w-xl grid-cols-4 gap-2 text-[11px] font-black text-zinc-300">
+          <div
+            className="mx-auto grid max-w-xl gap-2 text-[11px] font-black text-zinc-300"
+            style={{
+              gridTemplateColumns: `repeat(${visibleAdminLinks.length}, minmax(0, 1fr))`,
+            }}
+          >
             {visibleAdminLinks.map((link) => (
               <a
                 key={link.key}

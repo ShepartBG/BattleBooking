@@ -6,7 +6,7 @@ import FieldCard from "@/components/public/FieldCard";
 import GameCard from "@/components/public/GameCard";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
+import { FieldSettings } from "@/lib/fieldConfig";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
@@ -39,9 +39,12 @@ export default function HomePage() {
   const [games, setGames] = useState<Game[]>([]);
   const [fields, setFields] = useState<PublicField[]>([]);
   const [fieldsById, setFieldsById] = useState<Record<string, PublicField>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true);
+
       const [gamesResult, fieldsResponse] = await Promise.all([
         supabase
           .from("games")
@@ -57,9 +60,16 @@ export default function HomePage() {
 
       const publicFields = ((fieldsResult?.fields || []) as PublicField[]).filter((field) => field?.id);
 
-      setFieldsById(Object.fromEntries(publicFields.map((field) => [field.id, field])));
-      setGames(((gamesResult.data || []) as Game[]).filter(isGameStillPublic).slice(0, 3));
+      const nextFieldsById = Object.fromEntries(publicFields.map((field) => [field.id, field]));
+      setFieldsById(nextFieldsById);
+      setGames(
+        ((gamesResult.data || []) as Game[])
+          .filter(isGameStillPublic)
+          .filter((game) => game.field_id && nextFieldsById[game.field_id])
+          .slice(0, 3),
+      );
       setFields(publicFields.slice(0, 3));
+      setLoading(false);
     }
 
     loadData();
@@ -99,8 +109,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-7 grid max-w-2xl grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-            <HeroStat value={String(games.length)} label="активни игри" />
-            <HeroStat value={String(fields.length)} label="активни игрища" />
+            <HeroStat value={loading ? "..." : String(games.length)} label="активни игри" />
+            <HeroStat value={loading ? "..." : String(fields.length)} label="активни игрища" />
             <HeroStat value="Warzone" label="първо игрище" />
           </div>
         </div>
@@ -117,8 +127,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <MiniPanel label="Активни игри" value={String(games.length)} />
-            <MiniPanel label="Активни игрища" value={String(fields.length)} />
+            <MiniPanel label="Активни игри" value={loading ? "..." : String(games.length)} />
+            <MiniPanel label="Активни игрища" value={loading ? "..." : String(fields.length)} />
           </div>
         </div>
       </section>
@@ -139,6 +149,14 @@ export default function HomePage() {
           />
         </div>
       </section>
+
+      <MarketingImage
+        src="/marketing/battlebooking-checklist.png"
+        alt="BattleBooking улеснява записването и организацията на airsoft игри"
+        eyebrow="Защо BattleBooking"
+        title="По-малко хаос. Повече контрол."
+        text="Визията показва най-важното: лесно записване, свободни комплекти, реални данни и по-малко грешки."
+      />
 
       <section className="mx-auto w-full max-w-7xl px-3 pb-10 sm:px-4 sm:pb-12">
         <div className="overflow-hidden rounded-[1.75rem] border border-[#95c900]/30 bg-[radial-gradient(circle_at_top_left,rgba(149,201,0,0.22),transparent_34%),rgba(0,0,0,0.68)] p-5 sm:rounded-[2.4rem] sm:p-7 backdrop-blur-xl md:p-9">
@@ -174,6 +192,23 @@ export default function HomePage() {
         </div>
       </section>
 
+      <MarketingImage
+        src="/marketing/battlebooking-comparison.png"
+        alt="Сравнение без BattleBooking и със BattleBooking"
+        eyebrow="Преди и след"
+        title="Системата сама продава идеята."
+        text="Една снимка, която веднага показва разликата между ръчното записване и подредения процес."
+        reverse
+      />
+
+      <MarketingImage
+        src="/marketing/battlebooking-beach.png"
+        alt="Организаторът почива, докато BattleBooking управлява записванията"
+        eyebrow="Повече време за важното"
+        title="Организацията работи, дори когато ти си далеч."
+        text="BattleBooking намалява ръчното броене, обажданията и объркването, за да остане повече време за играта и общността."
+      />
+
       <section className="mx-auto w-full max-w-7xl px-3 pb-10 sm:px-4 sm:pb-12">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
@@ -191,7 +226,9 @@ export default function HomePage() {
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          {fields.length > 0 ? (
+          {loading ? (
+            <LoadingCard text="Зареждане на игрищата..." />
+          ) : fields.length > 0 ? (
             fields.map((field) => (
               <FieldCard
                 key={field.id}
@@ -233,11 +270,11 @@ export default function HomePage() {
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          {games.length > 0 ? (
+          {loading ? (
+            <LoadingCard text="Зареждане на активни игри..." />
+          ) : games.length > 0 ? (
             games.map((game) => {
-              const fieldSettings = game.field_id
-                ? fieldsById[game.field_id] || DEFAULT_FIELD_SETTINGS
-                : DEFAULT_FIELD_SETTINGS;
+              const fieldSettings = fieldsById[game.field_id as string];
 
               return (
               <GameCard
@@ -266,6 +303,59 @@ export default function HomePage() {
         </div>
       </section>
     </PublicShell>
+  );
+}
+
+function MarketingImage({
+  src,
+  alt,
+  eyebrow,
+  title,
+  text,
+  reverse,
+}: {
+  src: string;
+  alt: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+  reverse?: boolean;
+}) {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-3 pb-10 sm:px-4 sm:pb-12">
+      <div
+        className={`grid gap-5 overflow-hidden rounded-[1.75rem] border border-[#95c900]/20 bg-black/70 p-3 shadow-[0_0_70px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:rounded-[2.4rem] sm:p-4 lg:grid-cols-[0.95fr_1.05fr] lg:items-center ${reverse ? "lg:grid-flow-col-dense" : ""}`}
+      >
+        <div className={`${reverse ? "lg:col-start-2" : ""} p-3 sm:p-5`}>
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-[#b7ef16]">
+            {eyebrow}
+          </p>
+          <h2 className="mt-3 text-2xl font-black leading-tight sm:text-4xl">
+            {title}
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-300 sm:text-base sm:leading-8">
+            {text}
+          </p>
+        </div>
+
+        <div className={`${reverse ? "lg:col-start-1" : ""} overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] sm:rounded-[2rem]`}>
+          <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            className="aspect-[16/9] h-auto w-full object-cover sm:aspect-[21/10] lg:aspect-[16/10]"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LoadingCard({ text }: { text: string }) {
+  return (
+    <div className="col-span-full rounded-[2rem] border border-[#95c900]/20 bg-black/60 p-8 text-center font-black text-[#b7ef16] backdrop-blur-xl">
+      {text}
+    </div>
   );
 }
 

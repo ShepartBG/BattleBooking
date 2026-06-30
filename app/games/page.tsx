@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
+import { FieldSettings } from "@/lib/fieldConfig";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
@@ -84,11 +84,11 @@ export default function GamesPage() {
             <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-[#b7ef16] backdrop-blur-xl">
               Зареждане на активни игри...
             </div>
-          ) : games.length > 0 ? (
-            games.map((game) => {
-              const fieldSettings = game.field_id
-                ? fieldsById[game.field_id] || DEFAULT_FIELD_SETTINGS
-                : DEFAULT_FIELD_SETTINGS;
+          ) : games.filter((game) => game.field_id && fieldsById[game.field_id]).length > 0 ? (
+            games
+              .filter((game) => game.field_id && fieldsById[game.field_id])
+              .map((game) => {
+              const fieldSettings = fieldsById[game.field_id as string];
 
               return (
                 <GameCard

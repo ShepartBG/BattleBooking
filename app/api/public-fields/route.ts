@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
 import type { FieldSettingsRow } from "@/lib/fieldSettings";
@@ -9,20 +10,46 @@ export const revalidate = 0;
 
 type PublicFieldRow = FieldSettingsRow & {
   id: string;
-  field_id: string | null;
-  field_name: string | null;
-  city: string | null;
-  message: string | null;
-  status: string;
+  field_id?: string | null;
+  field_name?: string | null;
+  city?: string | null;
+  message?: string | null;
+  status?: string | null;
 };
 
-async function toPublicField(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, row: PublicFieldRow) {
+type SupabaseLike = any;
+
+function getPublicSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL или NEXT_PUBLIC_SUPABASE_ANON_KEY липсва.");
+  }
+
+  try {
+    return { client: getSupabaseAdmin(), canResolveFieldId: true };
+  } catch {
+    return {
+      client: createClient(supabaseUrl, anonKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+      canResolveFieldId: false,
+    };
+  }
+}
+
+async function toPublicField(
+  supabaseClient: SupabaseLike,
+  row: PublicFieldRow,
+  canResolveFieldId: boolean,
+) {
   const settings = rowToFieldSettings(row);
-  const realFieldId = await resolveRealFieldId(supabaseAdmin, row);
+  const realFieldId = canResolveFieldId ? await resolveRealFieldId(supabaseClient, row) : row.field_id || row.id;
 
   return {
-    id: realFieldId || row.id,
-    status: row.status,
+    id: realFieldId || row.field_id || row.id,
+    status: row.status || "active",
     name: settings.name,
     slug: settings.slug || createFieldSlug(settings.name),
     region: settings.region,
@@ -44,26 +71,50 @@ async function toPublicField(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
   };
 }
 
+async function loadFieldRequestRows(client: SupabaseLike) {
+  return client
+    .from("field_requests")
+    .select(
+      "id,field_id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
+    )
+    .eq("status", "active")
+    .order("field_name", { ascending: true });
+}
+
+async function loadFieldsRows(client: SupabaseLike) {
+  return client
+    .from("fields")
+    .select("id,field_name,city,phone")
+    .order("field_name", { ascending: true });
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = (searchParams.get("slug") || "").trim();
 
-    const supabaseAdmin = getSupabaseAdmin();
-    const { data, error } = await supabaseAdmin
-      .from("field_requests")
-      .select(
-        "id,field_id,field_name,city,message,facebook,instagram,tiktok,status,public_slug,public_region,public_settlement,public_location,public_description,logo_url,logo_fit,logo_scale,logo_x,logo_y,background_url,own_price,rental_price,contact_phone,phone",
-      )
-      .eq("status", "active")
-      .order("field_name", { ascending: true });
+    const { client, canResolveFieldId } = getPublicSupabase();
+    let rows: PublicFieldRow[] = [];
 
-    if (error) {
-      return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
+    const requestResult = await loadFieldRequestRows(client);
+
+    if (!requestResult.error && Array.isArray(requestResult.data)) {
+      rows = requestResult.data as PublicFieldRow[];
+    }
+
+    if (rows.length === 0) {
+      const fieldsResult = await loadFieldsRows(client);
+      if (!fieldsResult.error && Array.isArray(fieldsResult.data)) {
+        rows = (fieldsResult.data as PublicFieldRow[]).map((field) => ({
+          ...field,
+          field_id: field.id,
+          status: "active",
+        }));
+      }
     }
 
     const fields = await Promise.all(
-      ((data || []) as PublicFieldRow[]).map((row) => toPublicField(supabaseAdmin, row)),
+      rows.map((row) => toPublicField(client, row, canResolveFieldId)),
     );
 
     if (slug) {

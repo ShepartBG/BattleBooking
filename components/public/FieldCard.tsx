@@ -1,7 +1,6 @@
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 
 const DEFAULT_LOGO = "/battlebooking-real-logo-transparent.png";
-const DEFAULT_BG = "/battlebooking-bg.jpg";
 
 type Props = {
   name: string;
@@ -23,20 +22,26 @@ export default function FieldCard({
   description,
   href,
   status = "Активно",
-  image = DEFAULT_BG,
+  image = "",
   logo = DEFAULT_LOGO,
   logoFit = "contain",
   logoScale = 1,
   logoX = 0,
   logoY = 0,
 }: Props) {
+  const hasCustomImage = Boolean(
+    image && !image.includes("battlebooking-bg") && !image.includes("warzone-bg"),
+  );
+
   return (
     <article className="group overflow-hidden rounded-[2rem] border border-white/10 bg-black/60 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#95c900]/45 hover:shadow-[0_0_55px_rgba(149,201,0,0.14)]">
       <div
-        className="relative h-36 bg-cover bg-center sm:h-40"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.74)), url('${image}')`,
-        }}
+        className="relative h-28 bg-[radial-gradient(circle_at_top,rgba(149,201,0,0.16),transparent_48%),rgba(255,255,255,0.03)] sm:h-32"
+        style={
+          hasCustomImage
+            ? { backgroundImage: `linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.74)), url('${image}')` }
+            : undefined
+        }
       >
         <div className="absolute left-4 top-4 rounded-full border border-[#95c900]/35 bg-black/60 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#b7ef16] backdrop-blur-md">
           {status}
