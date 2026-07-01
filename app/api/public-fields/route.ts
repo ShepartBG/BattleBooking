@@ -92,6 +92,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = (searchParams.get("slug") || "").trim();
+    const fieldId = (searchParams.get("field_id") || "").trim();
 
     const { client, canResolveFieldId } = getPublicSupabase();
     let rows: PublicFieldRow[] = [];
@@ -116,6 +117,22 @@ export async function GET(request: Request) {
     const fields = await Promise.all(
       rows.map((row) => toPublicField(client, row, canResolveFieldId)),
     );
+
+    if (fieldId) {
+      const field = fields.find((item) => item.id === fieldId);
+
+      if (!field) {
+        return NextResponse.json(
+          { ok: false, message: "Не намерих активно игрище за тази игра." },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        { ok: true, field },
+        { headers: { "Cache-Control": "no-store, max-age=0" } },
+      );
+    }
 
     if (slug) {
       const field = fields.find(

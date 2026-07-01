@@ -23,32 +23,48 @@ export function readFieldSettings(): FieldSettings {
   }
 }
 
-async function loadPublicFieldSettings() {
+async function loadPublicFieldSettings(fieldId?: string | null) {
   try {
-    const response = await fetch(`/api/public-fields?t=${Date.now()}`, {
+    const params = new URLSearchParams({ t: String(Date.now()) });
+    const cleanFieldId = fieldId?.trim();
+    if (cleanFieldId) params.set("field_id", cleanFieldId);
+
+    const response = await fetch(`/api/public-fields?${params.toString()}`, {
       cache: "no-store",
     });
     const result = await response.json().catch(() => null);
-    const firstField = result?.fields?.[0];
 
-    if (!response.ok || !result?.ok || !firstField) return null;
+    const field = cleanFieldId ? result?.field : result?.fields?.[0];
+
+    if (!response.ok || !result?.ok || !field) return null;
 
     return {
       ...DEFAULT_FIELD_SETTINGS,
-      ...firstField,
+      ...field,
     } as FieldSettings;
   } catch {
     return null;
   }
 }
 
-export function useFieldSettings() {
+export function useFieldSettings(fieldId?: string | null) {
   const [settings, setSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
 
   useEffect(() => {
     let mounted = true;
+    const cleanFieldId = fieldId?.trim() || "";
 
     async function loadSettings() {
+      // Public game pages must never use localStorage or the logged-in organizer settings.
+      // They must always load branding/prices/contacts from the game.field_id.
+      if (cleanFieldId) {
+        const publicSettings = await loadPublicFieldSettings(cleanFieldId);
+        if (mounted) {
+          setSettings(publicSettings || DEFAULT_FIELD_SETTINGS);
+        }
+        return;
+      }
+
       const localSettings = readFieldSettings();
       if (mounted) setSettings(localSettings);
 
@@ -82,7 +98,7 @@ export function useFieldSettings() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [fieldId]);
 
   return settings;
 }

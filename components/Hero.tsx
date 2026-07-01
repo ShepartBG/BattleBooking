@@ -1,4 +1,5 @@
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
+import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
 
 type HeroProps = {
   title: string;
@@ -86,7 +87,7 @@ export default function Hero({
           <div className="mt-5 grid gap-2 text-left sm:grid-cols-3">
             <InfoPill label="Дата" value={`📅 ${date}`} />
             <InfoPill label="Час" value={`🕒 ${time}`} />
-            <InfoPill label="Локация" value={`📍 ${location}`} />
+            <InfoPill label="Локация" value={location} isLocation />
           </div>
         </div>
       </div>
@@ -117,13 +118,36 @@ function SocialPill({ href, label, icon }: { href: string; label: string; icon: 
   );
 }
 
-function InfoPill({ label, value }: { label: string; value: string }) {
+function InfoPill({
+  label,
+  value,
+  isLocation = false,
+}: {
+  label: string;
+  value: string;
+  isLocation?: boolean;
+}) {
+  const locationIsUrl = isLocation && isUrlLocation(value);
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur-md">
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur-md">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">
         {label}
       </p>
-      <p className="mt-1 text-base font-black text-white">{value}</p>
+      {locationIsUrl ? (
+        <a
+          href={normalizeLocationUrl(value)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-flex max-w-full items-center gap-1 text-base font-black text-[#b7ef16] underline-offset-4 hover:underline"
+        >
+          📍 {shortLocationLabel(value)}
+        </a>
+      ) : (
+        <p className="mt-1 break-words text-base font-black text-white">
+          {isLocation ? `📍 ${shortLocationLabel(value)}` : value}
+        </p>
+      )}
     </div>
   );
 }

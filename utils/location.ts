@@ -1,17 +1,24 @@
-export function isUrlLocation(value: string) {
-  const nextValue = (value || "").trim();
-  return /^https?:\/\//i.test(nextValue) || /^maps\.app\.goo\.gl\//i.test(nextValue) || /^goo\.gl\//i.test(nextValue);
+export function isUrlLocation(value?: string | null) {
+  const text = String(value || "").trim().toLowerCase();
+  return (
+    text.startsWith("http://") ||
+    text.startsWith("https://") ||
+    text.includes("maps.app.goo.gl") ||
+    text.includes("google.com/maps") ||
+    text.includes("goo.gl/maps")
+  );
 }
 
 export function normalizeLocationUrl(value: string) {
-  const nextValue = (value || "").trim();
-  if (!nextValue) return "";
-  if (/^https?:\/\//i.test(nextValue)) return nextValue;
-  return `https://${nextValue}`;
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (text.startsWith("http://") || text.startsWith("https://")) return text;
+  return `https://${text}`;
 }
 
-export function shortLocationLabel(value: string) {
-  const nextValue = (value || "").trim();
-  if (!nextValue) return "Локацията ще бъде добавена";
-  return isUrlLocation(nextValue) ? "Виж локация" : nextValue;
+export function shortLocationLabel(value?: string | null) {
+  const text = String(value || "").trim();
+  if (!text) return "Локация";
+  if (isUrlLocation(text)) return "Виж локация";
+  return text;
 }

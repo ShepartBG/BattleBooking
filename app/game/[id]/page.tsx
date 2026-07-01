@@ -29,6 +29,7 @@ type Game = {
   rules_version: string;
   status: string;
   postponed_reason?: string | null;
+  field_id?: string | null;
 };
 
 function getDailyRegistrationKey(gameId: string) {
@@ -67,7 +68,7 @@ export default function PublicGamePage() {
   const [showRules, setShowRules] = useState(false);
   const [rulesRead, setRulesRead] = useState(false);
   const [acceptedRules, setAcceptedRules] = useState(false);
-  const fieldSettings = useFieldSettings();
+  const fieldSettings = useFieldSettings(game?.field_id);
 
   const freeRentalSets = (game?.max_rental_sets ?? 0) - rentalPlayers;
   const ownPlayers = totalPlayers - rentalPlayers;
