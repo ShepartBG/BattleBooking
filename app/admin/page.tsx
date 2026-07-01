@@ -6,6 +6,8 @@ import AdminShell from "@/components/admin/AdminShell";
 import { isOwnerEmail } from "@/lib/access";
 import { getCurrentFieldContext } from "@/lib/currentField";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
+import { SkeletonBox, SkeletonLine } from "@/components/ui/Skeleton";
+import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
 
 type Game = {
   id: string;
@@ -271,10 +273,10 @@ export default function AdminPage() {
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <DashStat label="Всички игри" value={isLoading ? "..." : games.length} />
-                <DashStat label="Активни" value={isLoading ? "..." : activeGames} highlight />
-                <DashStat label="Отложени" value={isLoading ? "..." : postponedGames} />
-                <DashStat label="Затворени" value={isLoading ? "..." : closedGames} />
+                <DashStat label="Всички игри" value={games.length} loading={isLoading} />
+                <DashStat label="Активни" value={activeGames} loading={isLoading} highlight />
+                <DashStat label="Отложени" value={postponedGames} loading={isLoading} />
+                <DashStat label="Затворени" value={closedGames} loading={isLoading} />
               </div>
             </div>
             <div className="flex min-h-48 items-end border-t border-white/10 bg-[radial-gradient(circle_at_top,rgba(132,204,22,0.18),transparent_42%),rgba(255,255,255,0.03)] p-5 lg:min-h-full lg:border-l lg:border-t-0">
@@ -293,9 +295,11 @@ export default function AdminPage() {
         <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
           <div className="grid gap-4">
             {isLoading && (
-              <p className="rounded-2xl border border-white/10 bg-black/55 p-5 text-zinc-400">
-                Зареждане на игрите...
-              </p>
+              <>
+                <AdminGameSkeleton />
+                <AdminGameSkeleton />
+                <AdminGameSkeleton />
+              </>
             )}
             {!isLoading && games.length === 0 && (
               <p className="rounded-2xl border border-white/10 bg-black/55 p-5 text-zinc-400">
@@ -322,7 +326,7 @@ export default function AdminPage() {
 
                     <p className="mt-3 text-sm text-zinc-300 sm:text-base">
                       📅 {formatDate(game.game_date)} • 🕒{" "}
-                      {game.game_time?.slice(0, 5)} • 📍 {game.location}
+                      {game.game_time?.slice(0, 5)} • <AdminLocation value={game.location} />
                     </p>
                     <p className="mt-1 text-sm text-zinc-500">
                       🎒 Комплекти под наем: {game.max_rental_sets}
@@ -417,9 +421,11 @@ export default function AdminPage() {
 
             <div className="mt-4 space-y-3">
               {isLoading && (
-                <p className="rounded-2xl border border-lime-400/15 bg-lime-400/10 p-4 text-sm font-bold text-lime-200">
-                  Зареждане на последните записвания...
-                </p>
+                <>
+                  <ActivitySkeleton />
+                  <ActivitySkeleton />
+                  <ActivitySkeleton />
+                </>
               )}
 
               {!isLoading && activity.length === 0 && (
@@ -476,19 +482,73 @@ function DashStat({
   label,
   value,
   highlight,
+  loading = false,
 }: {
   label: string;
   value: number | string;
   highlight?: boolean;
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 sm:p-4">
       <p className="text-xs text-zinc-500">{label}</p>
-      <p
-        className={`mt-1 text-3xl font-black sm:text-4xl ${highlight ? "text-lime-300" : "text-white"}`}
-      >
-        {value}
-      </p>
+      {loading ? (
+        <SkeletonLine className="mt-3 h-9 w-16" />
+      ) : (
+        <p
+          className={`mt-1 text-3xl font-black sm:text-4xl ${highlight ? "text-lime-300" : "text-white"}`}
+        >
+          {value}
+        </p>
+      )}
     </div>
   );
+}
+
+function AdminGameSkeleton() {
+  return (
+    <article className="rounded-[1.75rem] border border-white/10 bg-black/65 p-4 backdrop-blur-xl sm:rounded-[2rem] sm:p-5">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+        <div className="w-full max-w-xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <SkeletonLine className="h-7 w-56" />
+            <SkeletonLine className="h-7 w-28" />
+          </div>
+          <SkeletonLine className="mt-5 h-5 w-full" />
+          <SkeletonLine className="mt-3 h-4 w-48" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <SkeletonBox key={index} className="h-11 w-full sm:w-24" />
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+      <SkeletonLine className="h-5 w-40" />
+      <SkeletonLine className="mt-3 h-4 w-56" />
+    </div>
+  );
+}
+
+function AdminLocation({ value }: { value: string }) {
+  if (isUrlLocation(value)) {
+    return (
+      <a
+        href={normalizeLocationUrl(value)}
+        target="_blank"
+        rel="noreferrer"
+        className="font-black text-lime-300 underline-offset-4 hover:underline"
+      >
+        📍 {shortLocationLabel(value)}
+      </a>
+    );
+  }
+
+  return <span>📍 {shortLocationLabel(value)}</span>;
 }

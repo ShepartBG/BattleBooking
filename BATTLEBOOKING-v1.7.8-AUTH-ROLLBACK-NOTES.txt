@@ -1,0 +1,5 @@
+BattleBooking v1.7.8
+- Restored working auth/login flow from v1.7.4/v1.7.5.
+- Kept v1.7.5 skeleton loaders and Google Maps location link fix.
+- Removed broken API auth dependency from later versions by using the stable v1.7.5 base.
+- Marketing images are adjusted to show full image without ugly cropping and without becoming huge.

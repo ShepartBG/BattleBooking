@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
+import { GameCardSkeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
 import { FieldSettings } from "@/lib/fieldConfig";
 import { isGameStillPublic } from "@/lib/gameVisibility";
@@ -81,9 +82,9 @@ export default function GamesPage() {
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {loading ? (
-            <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-[#b7ef16] backdrop-blur-xl">
-              Зареждане на активни игри...
-            </div>
+            Array.from({ length: 3 }).map((_, index) => (
+              <GameCardSkeleton key={index} />
+            ))
           ) : games.filter((game) => game.field_id && fieldsById[game.field_id]).length > 0 ? (
             games
               .filter((game) => game.field_id && fieldsById[game.field_id])

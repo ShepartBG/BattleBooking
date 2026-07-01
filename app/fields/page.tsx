@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
+import { FieldCardSkeleton } from "@/components/ui/Skeleton";
 
 type PublicField = {
   id: string;
@@ -71,9 +72,9 @@ export default function FieldsPage() {
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {loading ? (
-            <div className="col-span-full rounded-[2rem] border border-white/10 bg-black/60 p-8 text-center text-zinc-400 backdrop-blur-xl">
-              Зареждане на игрищата...
-            </div>
+            Array.from({ length: 3 }).map((_, index) => (
+              <FieldCardSkeleton key={index} />
+            ))
           ) : fields.length > 0 ? (
             fields.map((field) => (
               <FieldCard

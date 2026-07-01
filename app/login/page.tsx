@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PublicShell from "@/components/public/PublicShell";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { supabase } from "@/lib/supabase";
+import { isOwnerEmail } from "@/lib/access";
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -182,12 +183,7 @@ export default function LoginPage() {
 
 
 async function checkLoginAccess(email: string) {
-  const ownerEmails = (process.env.NEXT_PUBLIC_OWNER_EMAILS || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (ownerEmails.includes(email)) {
+  if (isOwnerEmail(email)) {
     return { allowed: true, message: "" };
   }
 

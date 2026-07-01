@@ -5,6 +5,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import { supabase } from "@/lib/supabase";
 import { getCurrentFieldContext } from "@/lib/currentField";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
+import { SkeletonBox, SkeletonLine } from "@/components/ui/Skeleton";
 
 type Game = {
   id: string;
@@ -150,12 +151,12 @@ export default function AdminStatsPage() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <Stat label="Игри" value={loading ? "..." : games.length} />
-          <Stat label="Играчи" value={loading ? "..." : stats.totalPlayers} highlight />
-          <Stat label="Уникални" value={loading ? "..." : stats.uniquePlayers} />
-          <Stat label="Средно/игра" value={loading ? "..." : stats.averagePlayers} />
-          <Stat label="Под наем" value={loading ? "..." : stats.rentalPlayers} />
-          <Stat label="Собствено" value={loading ? "..." : stats.ownPlayers} />
+          <Stat label="Игри" value={games.length} loading={loading} />
+          <Stat label="Играчи" value={stats.totalPlayers} loading={loading} highlight />
+          <Stat label="Уникални" value={stats.uniquePlayers} loading={loading} />
+          <Stat label="Средно/игра" value={stats.averagePlayers} loading={loading} />
+          <Stat label="Под наем" value={stats.rentalPlayers} loading={loading} />
+          <Stat label="Собствено" value={stats.ownPlayers} loading={loading} />
         </div>
 
         {!loading && stats.topGame && (
@@ -177,7 +178,7 @@ export default function AdminStatsPage() {
             <h2 className="text-2xl font-black">Игри по резултат</h2>
           </div>
 
-          {loading && <p className="p-5 text-zinc-400">Зареждане...</p>}
+          {loading && <StatsTableSkeleton />}
 
           {!loading && stats.byGame.length === 0 && (
             <p className="p-5 text-zinc-400">Няма данни.</p>
@@ -235,21 +236,43 @@ function Stat({
   label,
   value,
   highlight,
+  loading = false,
 }: {
   label: string;
   value: string | number;
   highlight?: boolean;
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-black/65 p-4 backdrop-blur-xl">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
         {label}
       </p>
-      <p
-        className={`mt-2 text-4xl font-black ${highlight ? "text-lime-300" : "text-white"}`}
-      >
-        {value}
-      </p>
+      {loading ? (
+        <SkeletonLine className="mt-4 h-10 w-20" />
+      ) : (
+        <p
+          className={`mt-2 text-4xl font-black ${highlight ? "text-lime-300" : "text-white"}`}
+        >
+          {value}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function StatsTableSkeleton() {
+  return (
+    <div className="space-y-3 p-5">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
+          <SkeletonLine className="h-5 w-full" />
+          <SkeletonLine className="h-5 w-24" />
+          <SkeletonLine className="h-5 w-16" />
+          <SkeletonLine className="h-5 w-20" />
+          <SkeletonLine className="h-5 w-20" />
+        </div>
+      ))}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import { supabase } from "@/lib/supabase";
 import { getCurrentFieldContext } from "@/lib/currentField";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
+import { SkeletonBox } from "@/components/ui/Skeleton";
 
 type Game = {
   id: string;
@@ -214,7 +215,11 @@ export default function AdminCalendarPage() {
           </div>
 
           <div className="mt-2 grid grid-cols-7 gap-2">
-            {days.map((date, index) => {
+            {loading
+              ? Array.from({ length: 35 }).map((_, index) => (
+                  <SkeletonBox key={index} className="min-h-28 rounded-2xl" />
+                ))
+              : days.map((date, index) => {
               const key = date ? toDateKey(date) : `empty-${index}`;
               const dayGames = date
                 ? gamesByDate.get(toDateKey(date)) || []
@@ -246,10 +251,6 @@ export default function AdminCalendarPage() {
               );
             })}
           </div>
-
-          {loading && (
-            <p className="mt-4 text-sm text-zinc-500">Зареждане...</p>
-          )}
         </div>
       </section>
     </AdminShell>

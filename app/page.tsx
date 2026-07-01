@@ -343,7 +343,7 @@ function MarketingImage({
             src={src}
             alt={alt}
             loading="lazy"
-            className="aspect-[16/9] h-auto w-full object-cover sm:aspect-[21/10] lg:aspect-[16/10]"
+            className="h-auto max-h-[360px] w-full object-contain sm:max-h-[420px] lg:max-h-[440px]"
           />
         </div>
       </div>

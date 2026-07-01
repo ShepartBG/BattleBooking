@@ -10,6 +10,7 @@ import {
   FieldSettings,
 } from "@/lib/fieldConfig";
 import { supabase } from "@/lib/supabase";
+import { SkeletonBox, SkeletonLine } from "@/components/ui/Skeleton";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<FieldSettings>(
@@ -229,6 +230,45 @@ export default function SettingsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <AdminShell active="settings">
+        <section className="space-y-5">
+          <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
+            <SkeletonLine className="h-4 w-32" />
+            <SkeletonLine className="mt-4 h-10 w-72 max-w-full" />
+            <SkeletonLine className="mt-4 h-5 w-full max-w-2xl" />
+          </div>
+          <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+            <div className="space-y-5">
+              <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5">
+                <SkeletonLine className="h-6 w-48" />
+                <div className="mt-5 space-y-4">
+                  <SkeletonBox className="h-14" />
+                  <SkeletonBox className="h-14" />
+                  <SkeletonBox className="h-14" />
+                  <SkeletonBox className="h-28" />
+                </div>
+              </div>
+              <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5">
+                <SkeletonLine className="h-6 w-56" />
+                <div className="mt-5 space-y-4">
+                  <SkeletonBox className="h-14" />
+                  <SkeletonBox className="h-14" />
+                  <SkeletonBox className="h-14" />
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5">
+              <SkeletonLine className="h-4 w-40" />
+              <SkeletonBox className="mt-5 h-[420px] rounded-[2rem]" />
+            </div>
+          </div>
+        </section>
+      </AdminShell>
+    );
+  }
+
   return (
     <AdminShell active="settings">
       {toast && (
@@ -256,11 +296,6 @@ export default function SettingsPage() {
         />
       )}
       <section className="space-y-5">
-        {loading && (
-          <div className="rounded-[2rem] border border-lime-400/15 bg-black/70 p-5 text-lime-200">
-            Зареждане на настройките...
-          </div>
-        )}
         <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">
             Настройки

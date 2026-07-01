@@ -3,20 +3,12 @@
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { isOwnerEmail } from "@/lib/access";
 
 type AuthState = "checking" | "allowed" | "blocked";
 
-function isOwner(email: string) {
-  const ownerEmails = (process.env.NEXT_PUBLIC_OWNER_EMAILS || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
-  return ownerEmails.includes(email.trim().toLowerCase());
-}
-
 async function checkOrganizerAccess(email: string) {
-  if (isOwner(email)) return { allowed: true, message: "" };
+  if (isOwnerEmail(email)) return { allowed: true, message: "" };
 
   const { data, error } = await supabase
     .from("field_requests")

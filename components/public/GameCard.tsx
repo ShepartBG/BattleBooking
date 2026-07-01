@@ -1,4 +1,5 @@
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
+import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
 
 type GameStatus = "active" | "closed" | "postponed" | string;
 
@@ -97,7 +98,7 @@ export default function GameCard({
       <div className="mt-4 grid grid-cols-1 gap-2 text-sm font-bold text-zinc-300 min-[420px]:grid-cols-2">
         <Info label="Дата" value={`📅 ${formatDate(date)}`} />
         <Info label="Час" value={`🕒 ${time?.slice(0, 5)}`} />
-        <Info label="Локация" value={`📍 ${location}`} />
+        <Info label="Локация" value={location} isLocation />
         <Info label="Наеми" value={`🎒 ${maxRentalSets}`} />
       </div>
 
@@ -111,13 +112,36 @@ export default function GameCard({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  isLocation = false,
+}: {
+  label: string;
+  value: string;
+  isLocation?: boolean;
+}) {
+  const locationIsUrl = isLocation && isUrlLocation(value);
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
       <p className="text-[10px] font-black uppercase tracking-[0.20em] text-zinc-500">
         {label}
       </p>
-      <p className="mt-1 text-sm text-white">{value}</p>
+      {locationIsUrl ? (
+        <a
+          href={normalizeLocationUrl(value)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-flex max-w-full items-center gap-1 text-sm font-black text-[#b7ef16] underline-offset-4 hover:underline"
+        >
+          📍 {shortLocationLabel(value)}
+        </a>
+      ) : (
+        <p className="mt-1 break-words text-sm text-white">
+          {isLocation ? `📍 ${shortLocationLabel(value)}` : value}
+        </p>
+      )}
     </div>
   );
 }
