@@ -173,9 +173,9 @@ export default function RegisterFieldPage() {
             </p>
             <div className="mt-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
-                <h2 className="text-2xl font-black sm:text-3xl">55 € / месец</h2>
+                <h2 className="text-2xl font-black sm:text-3xl">30 € / месец</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-300">
-                  Първият месец е безплатен тестов достъп. След това абонаментът е 55 € / месец, без дългосрочен договор.
+                  Първият месец е безплатен тестов достъп. След това абонаментът е 30 € / месец, без дългосрочен договор.
                 </p>
               </div>
               <div className="rounded-2xl border border-[#95c900]/25 bg-[#95c900]/10 px-4 py-3 text-sm font-black text-[#b7ef16]">
@@ -211,7 +211,7 @@ export default function RegisterFieldPage() {
                   Месечен абонамент
                 </p>
                 <p className="mt-1 text-2xl font-black sm:text-3xl text-white">
-                  55 € / месец
+                  30 € / месец
                 </p>
               </div>
               <p className="max-w-sm text-sm leading-6 text-zinc-300">
