@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import { supabase } from "@/lib/supabase";
+import { getResetPasswordRedirect } from "@/lib/authRedirect";
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -25,7 +26,7 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true);
-    const redirectTo = `${window.location.origin}/reset-password`;
+    const redirectTo = getResetPasswordRedirect(window.location.origin);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo,
     });

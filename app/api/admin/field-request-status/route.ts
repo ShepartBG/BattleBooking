@@ -3,6 +3,7 @@ import { fieldRequestDecisionEmail } from "@/lib/email/fieldRequestEmails";
 import { sendBattleBookingEmail } from "@/lib/email/emailSender";
 import type { FieldRequestStatus } from "@/lib/fieldRequests";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getResetPasswordRedirect } from "@/lib/authRedirect";
 import { buildTrialDates } from "@/lib/subscription";
 
 const allowedStatuses: FieldRequestStatus[] = [
@@ -17,6 +18,7 @@ function randomPassword() {
   const part2 = Math.random().toString(36).slice(2);
   return `BB-${part}-${part2}-2026!`;
 }
+
 
 export async function POST(request: Request) {
   try {
@@ -48,6 +50,14 @@ export async function POST(request: Request) {
 
     const email = String(fieldRequest.email || "").trim().toLowerCase();
     const fieldName = String(fieldRequest.field_name || "Вашето игрище").trim();
+
+    if (!email) {
+      return NextResponse.json(
+        { ok: false, message: "Заявката няма валиден email." },
+        { status: 400 },
+      );
+    }
+
     const updatePayload: Record<string, unknown> = {
       status,
       access_status: status,
@@ -64,10 +74,17 @@ export async function POST(request: Request) {
       updatePayload.grace_until = dates.graceUntil;
       updatePayload.access_blocked_reason = null;
 
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({
+      const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({
         page: 1,
         perPage: 1000,
       });
+
+      if (listError) {
+        return NextResponse.json(
+          { ok: false, message: "Не успях да проверя auth потребителите: " + listError.message },
+          { status: 500 },
+        );
+      }
 
       const existingUser = existingUsers.users.find(
         (user) => user.email?.trim().toLowerCase() === email,
@@ -92,17 +109,28 @@ export async function POST(request: Request) {
         }
       }
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://battlebooking.bg";
+      const redirectTo = getResetPasswordRedirect(request.headers.get("origin"));
+
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email,
-        options: {
-          redirectTo: `${siteUrl.replace(/\/$/, "")}/reset-password`,
-        },
+        options: { redirectTo },
       });
 
-      if (!linkError) {
-        resetUrl = linkData.properties?.action_link || null;
+      if (linkError) {
+        return NextResponse.json(
+          { ok: false, message: "Не успях да генерирам линк за парола: " + linkError.message },
+          { status: 500 },
+        );
+      }
+
+      resetUrl = linkData.properties?.action_link || null;
+
+      if (!resetUrl) {
+        return NextResponse.json(
+          { ok: false, message: "Supabase не върна валиден action_link за смяна на парола." },
+          { status: 500 },
+        );
       }
     }
 

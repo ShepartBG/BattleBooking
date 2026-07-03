@@ -5,11 +5,13 @@ export function getSupabaseAdmin() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL липсва.");
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL липсва в .env.local/Vercel Environment Variables.");
   }
 
   if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY липсва. Добави го във Vercel Environment Variables.");
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY липсва. Локално го добави в .env.local. В live го добави във Vercel Environment Variables.",
+    );
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
