@@ -1,27 +1,52 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import PublicShell from "@/components/public/PublicShell";
 import { supabase } from "@/lib/supabase";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("Проверявам линка...");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const [linkReady, setLinkReady] = useState(false);
+
+  useEffect(() => {
+    async function prepareSession() {
+      const code = searchParams.get("code");
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          setMessage("");
+          setError("Линкът е изтекъл или невалиден. Заяви нов линк.");
+          return;
+        }
+
+        setLinkReady(true);
+        setMessage("");
+        return;
+      }
+
+      setMessage("");
+      setError("Няма активен линк за смяна на парола.");
+    }
+
+    prepareSession();
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setMessage("");
 
     if (password.length < 6) {
-      setError("Новата парола трябва да бъде поне 6 символа.");
+      setError("Паролата трябва да бъде поне 6 символа.");
       return;
     }
 
@@ -31,16 +56,17 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+
+    const { error } = await supabase.auth.updateUser({ password });
+
     setLoading(false);
 
-    if (updateError) {
-      setError("Линкът е изтекъл или невалиден. Заяви нов линк от 'Забравена парола'.");
+    if (error) {
+      setError("Не успях да сменя паролата. Заяви нов линк.");
       return;
     }
 
-    setMessage("Паролата е сменена успешно. Прехвърлям те към вход...");
-    setTimeout(() => router.replace("/login"), 1200);
+    router.replace("/login");
   }
 
   return (
@@ -49,67 +75,49 @@ export default function ResetPasswordPage() {
         <form
           onSubmit={handleSubmit}
           className="w-full rounded-[2rem] border border-lime-400/15 bg-black/70 p-6 shadow-[0_0_70px_rgba(0,0,0,.45)] backdrop-blur-xl"
-          noValidate
         >
           <p className="text-xs font-black uppercase tracking-[0.3em] text-lime-300">
             New Password
           </p>
+
           <h1 className="mt-3 text-4xl font-black">Нова парола</h1>
+
           <p className="mt-3 leading-7 text-zinc-400">
             Въведи новата парола за organizer акаунта.
           </p>
 
-          <label className="mt-6 block">
-            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-zinc-500">
-              Нова парола
-            </span>
-            <div className="relative">
-              <input
-                className="bb-input pr-24"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
-              >
-                {showPassword ? "Скрий" : "Покажи"}
-              </button>
-            </div>
-          </label>
+          <input
+            className="bb-input mt-6"
+            type="password"
+            placeholder="Нова парола"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={!linkReady || loading}
+          />
 
-          <label className="mt-4 block">
-            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-zinc-500">
-              Повтори паролата
-            </span>
-            <div className="relative">
-              <input
-                className="bb-input pr-24"
-                type={showRepeatPassword ? "text" : "password"}
-                value={repeatPassword}
-                onChange={(e) => setRepeatPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowRepeatPassword((current) => !current)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/[0.1] hover:text-white"
-              >
-                {showRepeatPassword ? "Скрий" : "Покажи"}
-              </button>
-            </div>
-          </label>
+          <input
+            className="bb-input mt-4"
+            type="password"
+            placeholder="Повтори паролата"
+            value={repeatPassword}
+            onChange={(e) => setRepeatPassword(e.target.value)}
+            disabled={!linkReady || loading}
+          />
 
-          {error && <div className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm font-bold text-red-200">{error}</div>}
-          {message && <div className="mt-4 rounded-2xl border border-lime-400/25 bg-lime-500/10 p-4 text-sm font-bold text-lime-200">{message}</div>}
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="mt-4 rounded-2xl border border-lime-400/25 bg-lime-500/10 p-4 text-sm font-bold text-lime-200">
+              {message}
+            </div>
+          )}
 
           <button
-            disabled={loading}
+            disabled={loading || !linkReady}
             className="mt-6 w-full rounded-2xl bg-lime-500 px-5 py-4 font-black text-black transition hover:bg-lime-400 disabled:opacity-60"
           >
             {loading ? "Запазване..." : "Запази новата парола"}
@@ -117,5 +125,13 @@ export default function ResetPasswordPage() {
         </form>
       </section>
     </PublicShell>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
