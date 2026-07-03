@@ -129,15 +129,34 @@ function ResetPasswordContent() {
 
     setLoading(true);
 
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
 
-    setLoading(false);
-
-    if (updateError) {
-      setError("Не успях да сменя паролата. Заяви нов линк и пробвай пак.");
+    if (!accessToken) {
+      setLoading(false);
+      setError("Сесията от линка не е активна. Отвори последния email линк отново.");
       return;
     }
 
+    const response = await fetch("/api/auth/update-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ password }),
+    });
+
+    const result = await response.json().catch(() => null);
+
+    setLoading(false);
+
+    if (!response.ok || !result?.ok) {
+      setError(result?.message || "Не успях да сменя паролата. Заяви нов линк и пробвай пак.");
+      return;
+    }
+
+    await supabase.auth.signOut();
     setMessage("Паролата е сменена успешно. Прехвърлям те към вход...");
     setTimeout(() => router.replace("/login"), 1000);
   }
