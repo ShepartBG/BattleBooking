@@ -137,8 +137,9 @@ export default function RegisterFieldPage() {
             <p className="text-xs font-black uppercase tracking-[0.3em] text-[#b7ef16]">
               Join BattleBooking
             </p>
-            <h1 className="bb-mobile-title mt-3 text-[2.45rem] font-black leading-[0.98] tracking-tight sm:text-5xl md:text-7xl">
-              Регистрирай игрище
+            <h1 className="bb-mobile-title mt-3 font-black leading-[0.98] tracking-tight">
+              <span className="block whitespace-nowrap text-[2.25rem] sm:text-5xl md:text-7xl">Регистрирай</span>
+              <span className="block text-[2.25rem] sm:text-5xl md:text-7xl">игрище</span>
             </h1>
             <p className="mt-5 text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8">
               Изпрати заявка за достъп до BattleBooking. След преглед и
