@@ -7,7 +7,7 @@ import GameCard from "@/components/public/GameCard";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { supabase } from "@/lib/supabase";
 import { FieldSettings } from "@/lib/fieldConfig";
-import { isGameStillPublic } from "@/lib/gameVisibility";
+import { getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
   id: string;
@@ -50,7 +50,7 @@ export default function HomePage() {
           .from("games")
           .select("id,title,game_date,game_time,location,max_rental_sets,status,field_id")
           .in("status", ["active", "postponed"])
-          .gte("game_date", new Date().toISOString().slice(0, 10))
+          .gte("game_date", getPublicGamesMinDate())
           .order("game_date", { ascending: true })
           .limit(12),
         fetch(`/api/public-fields?t=${Date.now()}`, { cache: "no-store" }),
