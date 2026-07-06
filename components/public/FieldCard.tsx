@@ -1,3 +1,4 @@
+import Link from "next/link";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 
 const DEFAULT_LOGO = "/battlebooking-real-logo-transparent.png";
@@ -77,12 +78,13 @@ export default function FieldCard({
           {description}
         </p>
 
-        <a
+        <Link
           href={href}
+          prefetch
           className="mt-5 block rounded-2xl border border-[#95c900]/30 bg-[#95c900]/10 px-4 py-3 text-center font-black text-[#b7ef16] transition hover:bg-[#95c900] hover:text-black"
         >
           Виж игрището
-        </a>
+        </Link>
       </div>
     </article>
   );

@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
 import type { FieldSettingsRow } from "@/lib/fieldSettings";
 import { resolveRealFieldId } from "@/lib/fieldIdentity";
+import { getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -88,11 +89,29 @@ async function loadFieldsRows(client: SupabaseLike) {
     .order("field_name", { ascending: true });
 }
 
+async function loadPublicGamesForField(client: SupabaseLike, fieldId?: string | null) {
+  if (!fieldId) return [];
+
+  const { data, error } = await client
+    .from("games")
+    .select("id,title,game_date,game_time,location,max_rental_sets,status,description,field_id")
+    .eq("field_id", fieldId)
+    .in("status", ["active", "postponed"])
+    .gte("game_date", getPublicGamesMinDate())
+    .order("game_date", { ascending: true })
+    .limit(20);
+
+  if (error || !Array.isArray(data)) return [];
+
+  return data.filter(isGameStillPublic).slice(0, 6);
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = (searchParams.get("slug") || "").trim();
     const fieldId = (searchParams.get("field_id") || "").trim();
+    const includeGames = searchParams.get("include_games") === "1";
 
     const { client, canResolveFieldId } = getPublicSupabase();
     let rows: PublicFieldRow[] = [];
@@ -114,6 +133,30 @@ export async function GET(request: Request) {
       }
     }
 
+    if (slug) {
+      const matchedRow = rows.find((row) => {
+        const settings = rowToFieldSettings(row);
+        return settings.slug === slug || createFieldSlug(settings.name) === slug;
+      });
+
+      if (!matchedRow) {
+        return NextResponse.json(
+          { ok: false, message: "Не намерих активно игрище с този адрес." },
+          { status: 404 },
+        );
+      }
+
+      const field = await toPublicField(client, matchedRow, canResolveFieldId);
+      const games = includeGames ? await loadPublicGamesForField(client, field.id) : undefined;
+
+      return NextResponse.json(
+        includeGames ? { ok: true, field, games } : { ok: true, field },
+        { headers: { "Cache-Control": "no-store, max-age=0" } },
+      );
+    }
+
+
+
     const fields = await Promise.all(
       rows.map((row) => toPublicField(client, row, canResolveFieldId)),
     );
@@ -128,26 +171,10 @@ export async function GET(request: Request) {
         );
       }
 
-      return NextResponse.json(
-        { ok: true, field },
-        { headers: { "Cache-Control": "no-store, max-age=0" } },
-      );
-    }
-
-    if (slug) {
-      const field = fields.find(
-        (item) => item.slug === slug || createFieldSlug(item.name) === slug,
-      );
-
-      if (!field) {
-        return NextResponse.json(
-          { ok: false, message: "Не намерих активно игрище с този адрес." },
-          { status: 404 },
-        );
-      }
+      const games = includeGames ? await loadPublicGamesForField(client, field.id) : undefined;
 
       return NextResponse.json(
-        { ok: true, field },
+        includeGames ? { ok: true, field, games } : { ok: true, field },
         { headers: { "Cache-Control": "no-store, max-age=0" } },
       );
     }

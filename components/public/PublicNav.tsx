@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { supabase } from "@/lib/supabase";
@@ -72,25 +73,27 @@ export default function PublicNav() {
 
         <nav className="hidden items-center gap-1 text-sm font-bold text-zinc-300 lg:flex">
           {navItems.map((item) => (
-            <a
+            <Link
               key={item.href}
               className="rounded-xl px-3 py-2 transition hover:bg-white/[0.07] hover:text-white"
               href={item.href}
+              prefetch
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 sm:flex">
           {sessionState === "logged-in" ? (
             <>
-              <a
+              <Link
                 href={dashboardHref}
+                prefetch
                 className="min-h-11 rounded-2xl bg-[#95c900] px-4 py-2.5 text-sm font-black text-black shadow-[0_0_25px_rgba(149,201,0,0.24)] transition hover:bg-[#b7ef16]"
               >
                 {dashboardLabel}
-              </a>
+              </Link>
               <button
                 onClick={signOut}
                 disabled={isSigningOut}
@@ -101,18 +104,20 @@ export default function PublicNav() {
             </>
           ) : (
             <>
-              <a
+              <Link
                 href="/login"
+                prefetch
                 className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/[0.10]"
               >
                 Вход
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/register-field"
+                prefetch
                 className="min-h-11 rounded-2xl bg-[#95c900] px-4 py-2.5 text-sm font-black text-black shadow-[0_0_25px_rgba(149,201,0,0.24)] transition hover:bg-[#b7ef16]"
               >
                 Заяви достъп
-              </a>
+              </Link>
             </>
           )}
         </div>
@@ -131,25 +136,27 @@ export default function PublicNav() {
         <div className="border-t border-white/10 bg-black/95 px-3 pb-4 pt-2 sm:hidden">
           <div className="grid gap-2">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
+                prefetch
                 onClick={() => setMobileOpen(false)}
                 className="min-h-12 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-base font-black text-zinc-200"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
 
             {sessionState === "logged-in" ? (
               <>
-                <a
+                <Link
                   href={dashboardHref}
+                  prefetch
                   onClick={() => setMobileOpen(false)}
                   className="min-h-12 rounded-2xl bg-[#95c900] px-4 py-3 text-center text-base font-black text-black"
                 >
                   {dashboardLabel}
-                </a>
+                </Link>
                 <button
                   onClick={signOut}
                   disabled={isSigningOut}
@@ -160,20 +167,22 @@ export default function PublicNav() {
               </>
             ) : (
               <>
-                <a
+                <Link
                   href="/login"
+                  prefetch
                   onClick={() => setMobileOpen(false)}
                   className="min-h-12 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-center text-base font-black text-white"
                 >
                   Вход
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/register-field"
+                  prefetch
                   onClick={() => setMobileOpen(false)}
                   className="min-h-12 rounded-2xl bg-[#95c900] px-4 py-3 text-center text-base font-black text-black"
                 >
                   Заяви достъп
-                </a>
+                </Link>
               </>
             )}
           </div>

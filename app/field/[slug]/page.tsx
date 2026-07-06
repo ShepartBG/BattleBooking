@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
-import { supabase } from "@/lib/supabase";
+import FieldPageLoading from "@/components/public/FieldPageLoading";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
-import { getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
   id: string;
@@ -25,7 +24,6 @@ export default function FieldPage() {
   const slug = String(params?.slug || "");
   const [games, setGames] = useState<Game[]>([]);
   const [fieldSettings, setFieldSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
-  const [fieldId, setFieldId] = useState<string | null>(null);
   const [loadingField, setLoadingField] = useState(true);
 
   useEffect(() => {
@@ -33,7 +31,7 @@ export default function FieldPage() {
       setLoadingField(true);
 
       try {
-        const response = await fetch(`/api/public-fields?slug=${encodeURIComponent(slug)}&t=${Date.now()}`, {
+        const response = await fetch(`/api/public-fields?slug=${encodeURIComponent(slug)}&include_games=1&t=${Date.now()}`, {
           cache: "no-store",
         });
         const result = await response.json();
@@ -45,13 +43,13 @@ export default function FieldPage() {
         }
 
         if (result.field) {
-          setFieldId(result.field.id || null);
           setFieldSettings({
             ...DEFAULT_FIELD_SETTINGS,
             ...result.field,
           });
+          setGames(Array.isArray(result.games) ? result.games : []);
         } else {
-          setFieldId(null);
+          setGames([]);
         }
       } catch (error) {
         console.error("Field load error:", error);
@@ -63,37 +61,19 @@ export default function FieldPage() {
     if (slug) loadField();
   }, [slug]);
 
-  useEffect(() => {
-    async function loadGames() {
-      if (!fieldId) {
-        setGames([]);
-        return;
-      }
 
-      const { data } = await supabase
-        .from("games")
-        .select("id,title,game_date,game_time,location,max_rental_sets,status,description,field_id")
-        .eq("field_id", fieldId)
-        .in("status", ["active", "postponed"])
-        .gte("game_date", getPublicGamesMinDate())
-        .order("game_date", { ascending: true })
-        .limit(20);
 
-      setGames((data || []).filter(isGameStillPublic).slice(0, 6));
-    }
-
-    loadGames();
-  }, [fieldId]);
+  if (loadingField) {
+    return (
+      <PublicShell>
+        <FieldPageLoading />
+      </PublicShell>
+    );
+  }
 
   return (
     <PublicShell>
       <section className="mx-auto w-full max-w-7xl px-4 py-12">
-        {loadingField && (
-          <div className="mb-5 rounded-[2rem] border border-lime-400/15 bg-black/60 p-5 text-lime-200 backdrop-blur-xl">
-            Зареждане на профила на игрището...
-          </div>
-        )}
-
         <div className="overflow-hidden rounded-[2.6rem] border border-[#95c900]/22 bg-black/60 backdrop-blur-xl">
           <div
             className="relative min-h-[360px] bg-cover bg-center"

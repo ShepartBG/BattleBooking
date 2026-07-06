@@ -1,3 +1,4 @@
+import Link from "next/link";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
 
@@ -115,12 +116,13 @@ export default function GameCard({
         <Info label="Наеми" value={`🎒 ${maxRentalSets}`} />
       </div>
 
-      <a
+      <Link
         href={`/game/${id}`}
+        prefetch
         className={`mt-5 block min-h-12 rounded-2xl px-4 py-3.5 text-center font-black transition ${statusView.buttonClass}`}
       >
         {statusView.button}
-      </a>
+      </Link>
     </article>
   );
 }
