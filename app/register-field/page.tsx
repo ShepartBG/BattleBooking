@@ -29,12 +29,13 @@ export default function RegisterFieldPage() {
     const phone = normalizePhone(String(formData.get("phone") || ""));
     const email = String(formData.get("email") || "")
       .trim()
-      .toLowerCase();
-    const website = String(formData.get("website") || "").trim();
-    const facebook = String(formData.get("facebook") || "").trim();
-    const instagram = String(formData.get("instagram") || "").trim();
-    const tiktok = String(formData.get("tiktok") || "").trim();
-    const message = String(formData.get("message") || "").trim();
+      .toLowerCase()
+      .slice(0, 120);
+    const website = normalizeOptionalUrl(String(formData.get("website") || ""));
+    const facebook = normalizeOptionalUrl(String(formData.get("facebook") || ""));
+    const instagram = normalizeOptionalUrl(String(formData.get("instagram") || ""));
+    const tiktok = normalizeOptionalUrl(String(formData.get("tiktok") || ""));
+    const message = cleanDescription(String(formData.get("message") || ""), 500);
     const privacyConsent = formData.get("privacy_consent") === "on";
 
     const validationError = validateRequest({
@@ -82,11 +83,11 @@ export default function RegisterFieldPage() {
     const receivedEmail = fieldRequestReceivedEmail(fieldName);
 
     const { error } = await supabase.from("field_requests").insert({
-      field_name: fieldName,
-      owner_name: ownerName,
+      field_name: cleanTitle(fieldName, 80),
+      owner_name: cleanPersonName(ownerName, 80),
       email,
       phone,
-      city,
+      city: cleanLocation(city, 120),
       website: website || null,
       facebook: facebook || null,
       instagram: instagram || null,
@@ -437,25 +438,50 @@ function validateRequest(data: {
   privacyConsent: boolean;
 }) {
   if (!data.fieldName) return "Моля, въведи име на игрището.";
+  if (!isValidFieldName(data.fieldName)) {
+    return "Името на игрището може да съдържа само букви, цифри, интервали, тире, апостроф и точка.";
+  }
+
   if (!data.ownerName) return "Моля, въведи име на организатора.";
+  if (!isValidPersonName(data.ownerName)) {
+    return "Името на организатора трябва да съдържа само букви, интервали, тире или апостроф.";
+  }
+
   if (!data.city) return "Моля, въведи град или локация.";
-  if (!isValidBgPhone(data.phone))
+  if (!isValidLocation(data.city)) {
+    return "Градът/локацията може да съдържа само букви, цифри, интервали, точка, запетая, тире и наклонена черта.";
+  }
+
+  if (!isValidBgPhone(data.phone)) {
     return "Заявката не беше приета. Въведи валиден български мобилен номер с 10 цифри. Пример: 0897047668.";
+  }
+
   if (!isValidEmail(data.email)) return "Моля, въведи валиден email адрес.";
+
+  const urlFields = [
+    { label: "Website", value: data.website },
+    { label: "Facebook", value: data.facebook },
+    { label: "Instagram", value: data.instagram },
+    { label: "TikTok", value: data.tiktok },
+  ];
+
+  for (const item of urlFields) {
+    if (item.value && !isValidSafeUrl(item.value)) {
+      return `${item.label} трябва да бъде валиден линк, започващ с http://, https:// или www.`;
+    }
+  }
+
+  if (containsUnsafeHtml(data.message)) {
+    return "Описанието не може да съдържа HTML, script код или опасни символи.";
+  }
+
+  if (data.message.length > 500) {
+    return "Описанието трябва да е максимум 500 символа.";
+  }
+
   if (!data.privacyConsent) {
     return "За да изпратиш заявка, трябва да приемеш обработката на данните според Политиката за поверителност.";
   }
-
-  const links = [
-    data.website,
-    data.facebook,
-    data.instagram,
-    data.tiktok,
-  ].filter(Boolean);
-  if (links.some((link) => link.length > 180))
-    return "Някой от линковете е прекалено дълъг. Максимум 180 символа.";
-  if (data.message.length > 500)
-    return "Описанието трябва да е максимум 500 символа.";
 
   return "";
 }
@@ -546,6 +572,82 @@ function isValidBgPhone(phone: string) {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+const FIELD_NAME_RE = /^[A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь0-9\s.'’-]{2,80}$/;
+const PERSON_NAME_RE = /^[A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь\s'’-]{2,80}$/;
+const LOCATION_RE = /^[A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь0-9\s.,'’\/()-]{2,120}$/;
+
+function cleanTitle(value: string, maxLength: number) {
+  return stripUnsafe(value)
+    .replace(/[^A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь0-9\s.'’-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function cleanPersonName(value: string, maxLength: number) {
+  return stripUnsafe(value)
+    .replace(/[^A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь\s'’-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function cleanLocation(value: string, maxLength: number) {
+  return stripUnsafe(value)
+    .replace(/[^A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь0-9\s.,'’\/()-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function cleanDescription(value: string, maxLength: number) {
+  return stripUnsafe(value)
+    .replace(/[<>]/g, "")
+    .replace(/\s{3,}/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function stripUnsafe(value: string) {
+  return value
+    .replace(/<\s*\/?\s*(script|iframe|object|embed|img|svg|link|meta|style)[^>]*>/gi, "")
+    .replace(/javascript\s*:/gi, "")
+    .replace(/data\s*:/gi, "")
+    .replace(/on\w+\s*=/gi, "");
+}
+
+function normalizeOptionalUrl(value: string) {
+  const trimmed = stripUnsafe(value).trim().slice(0, 180);
+  if (!trimmed) return "";
+  if (/^www\./i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+function isValidSafeUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !containsUnsafeHtml(value) && value.length <= 180;
+  } catch {
+    return false;
+  }
+}
+
+function isValidFieldName(value: string) {
+  return FIELD_NAME_RE.test(value.trim()) && !containsUnsafeHtml(value);
+}
+
+function isValidPersonName(value: string) {
+  return PERSON_NAME_RE.test(value.trim()) && !containsUnsafeHtml(value);
+}
+
+function isValidLocation(value: string) {
+  return LOCATION_RE.test(value.trim()) && !containsUnsafeHtml(value);
+}
+
+function containsUnsafeHtml(value: string) {
+  return /<|>|javascript\s*:|data\s*:|on\w+\s*=|\{\{|\}\}/i.test(value);
 }
 
 function Field({

@@ -8,16 +8,16 @@ import { sendBattleBookingEmail } from "@/lib/email/emailSender";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const email = String(body.email || "").trim().toLowerCase();
-    const fieldName = String(body.fieldName || "").trim();
-    const ownerName = String(body.ownerName || "").trim();
-    const city = String(body.city || "").trim();
-    const phone = String(body.phone || "").trim();
-    const website = String(body.website || "").trim() || null;
-    const facebook = String(body.facebook || "").trim() || null;
-    const instagram = String(body.instagram || "").trim() || null;
-    const tiktok = String(body.tiktok || "").trim() || null;
-    const message = String(body.message || "").trim() || null;
+    const email = String(body.email || "").trim().toLowerCase().slice(0, 120);
+    const fieldName = sanitizeText(body.fieldName, 80);
+    const ownerName = sanitizeText(body.ownerName, 80);
+    const city = sanitizeText(body.city, 120);
+    const phone = String(body.phone || "").replace(/\D/g, "").slice(0, 10);
+    const website = sanitizeUrl(body.website);
+    const facebook = sanitizeUrl(body.facebook);
+    const instagram = sanitizeUrl(body.instagram);
+    const tiktok = sanitizeUrl(body.tiktok);
+    const message = sanitizeText(body.message, 500) || null;
 
     if (!email || !fieldName) {
       return NextResponse.json(
@@ -90,3 +90,30 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
+function sanitizeText(value: unknown, maxLength: number) {
+  return String(value || "")
+    .replace(/<\s*\/?\s*(script|iframe|object|embed|img|svg|link|meta|style)[^>]*>/gi, "")
+    .replace(/javascript\s*:/gi, "")
+    .replace(/data\s*:/gi, "")
+    .replace(/on\w+\s*=/gi, "")
+    .replace(/[<>]/g, "")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function sanitizeUrl(value: unknown) {
+  const raw = sanitizeText(value, 180);
+  if (!raw) return null;
+  const normalized = /^www\./i.test(raw) ? `https://${raw}` : raw;
+
+  try {
+    const url = new URL(normalized);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    return normalized;
+  } catch {
+    return null;
+  }
+}
+
