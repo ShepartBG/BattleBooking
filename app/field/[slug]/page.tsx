@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
-import FieldPageLoading from "@/components/public/FieldPageLoading";
+import LoadingScreen from "@/components/LoadingScreen";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
 
@@ -66,7 +66,7 @@ export default function FieldPage() {
   if (loadingField) {
     return (
       <PublicShell>
-        <FieldPageLoading />
+        <LoadingScreen title="Зареждане..." subtitle="Отваряме страницата на игрището" />
       </PublicShell>
     );
   }

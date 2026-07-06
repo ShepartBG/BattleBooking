@@ -194,11 +194,7 @@ export default function PublicGamePage() {
   }
 
   if (gameLoading) {
-    return (
-      <PublicShell>
-        <HomeLoader />
-      </PublicShell>
-    );
+    return <HomeLoader />;
   }
 
   if (!game) {
