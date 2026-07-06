@@ -6,41 +6,21 @@ export type RegistrationErrors = {
   participation_type?: string;
 };
 
-function getText(formData: FormData, key: string) {
-  return String(formData.get(key) || "").trim();
-}
-
-function isValidName(value: string) {
-  return /^[A-Za-zА-Яа-яЁё]{2,}$/.test(value);
-}
+const NAME_RE = /^[A-Za-zА-Яа-яЁёІіЇїЄєЪъЬь\s'-]{2,40}$/;
 
 export function validateRegistrationForm(formData: FormData): RegistrationErrors {
   const errors: RegistrationErrors = {};
-  const firstName = getText(formData, "first_name");
-  const lastName = getText(formData, "last_name");
-  const phone = getText(formData, "phone");
-  const age = Number(getText(formData, "age"));
-  const participationType = getText(formData, "participation_type");
+  const firstName = String(formData.get("first_name") || "").trim();
+  const lastName = String(formData.get("last_name") || "").trim();
+  const phone = String(formData.get("phone") || "").replace(/\D/g, "");
+  const age = Number(formData.get("age"));
+  const participationType = String(formData.get("participation_type") || "");
 
-  if (!isValidName(firstName)) {
-    errors.first_name = "Въведи валидно име — само букви, минимум 2 символа.";
-  }
-
-  if (!isValidName(lastName)) {
-    errors.last_name = "Въведи валидна фамилия — само букви, минимум 2 символа.";
-  }
-
-  if (!/^\d{10}$/.test(phone)) {
-    errors.phone = "Телефонът трябва да бъде точно 10 цифри.";
-  }
-
-  if (!Number.isFinite(age) || age < 16 || age > 60) {
-    errors.age = "Участникът трябва да бъде между 16 и 60 години.";
-  }
-
-  if (!["rental", "own"].includes(participationType)) {
-    errors.participation_type = "Избери начин на участие.";
-  }
+  if (!NAME_RE.test(firstName)) errors.first_name = "Името трябва да съдържа само букви и да е поне 2 символа.";
+  if (!NAME_RE.test(lastName)) errors.last_name = "Фамилията трябва да съдържа само букви и да е поне 2 символа.";
+  if (!/^\d{10}$/.test(phone)) errors.phone = "Телефонът трябва да бъде точно 10 цифри.";
+  if (!Number.isInteger(age) || age < 16 || age > 99) errors.age = "Възрастта трябва да бъде число между 16 и 99.";
+  if (!["rental", "own"].includes(participationType)) errors.participation_type = "Избери тип участие.";
 
   return errors;
 }

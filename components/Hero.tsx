@@ -69,10 +69,15 @@ export default function Hero({
             {title}
           </h1>
 
-          {description && (
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300">
-              {description}
-            </p>
+          {description?.trim() && (
+            <div className="mt-4 max-w-2xl rounded-2xl border border-lime-400/20 bg-black/45 p-4 text-left backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-lime-300">
+                📝 Описание на играта
+              </p>
+              <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-6 text-zinc-200">
+                {description}
+              </p>
+            </div>
           )}
 
           {hasSocials && (

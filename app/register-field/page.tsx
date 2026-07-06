@@ -35,6 +35,7 @@ export default function RegisterFieldPage() {
     const instagram = String(formData.get("instagram") || "").trim();
     const tiktok = String(formData.get("tiktok") || "").trim();
     const message = String(formData.get("message") || "").trim();
+    const privacyConsent = formData.get("privacy_consent") === "on";
 
     const validationError = validateRequest({
       fieldName,
@@ -47,6 +48,7 @@ export default function RegisterFieldPage() {
       instagram,
       tiktok,
       message,
+      privacyConsent,
     });
 
     if (validationError) {
@@ -333,6 +335,20 @@ export default function RegisterFieldPage() {
               </div>
             </Field>
 
+            <label className="flex items-start gap-3 rounded-2xl border border-[#95c900]/20 bg-[#95c900]/10 p-4 text-sm leading-6 text-zinc-300">
+              <input
+                name="privacy_consent"
+                type="checkbox"
+                className="mt-1 h-5 w-5 accent-[#95c900]"
+              />
+              <span>
+                Съгласен съм BattleBooking да обработи предоставените от мен данни с цел разглеждане на заявката за достъп.
+                <span className="mt-1 block text-xs text-zinc-500">
+                  Запознат съм с <a className="text-[#b7ef16] underline" href="/privacy" target="_blank">Политиката за поверителност</a> и приемам <a className="text-[#b7ef16] underline" href="/terms" target="_blank">Общите условия</a>.
+                </span>
+              </span>
+            </label>
+
             <button
               disabled={isSubmitting || sent}
               className="rounded-2xl bg-[#95c900] px-5 py-4 text-center font-black text-black transition hover:bg-[#b7ef16] disabled:cursor-not-allowed disabled:opacity-60"
@@ -418,6 +434,7 @@ function validateRequest(data: {
   instagram: string;
   tiktok: string;
   message: string;
+  privacyConsent: boolean;
 }) {
   if (!data.fieldName) return "Моля, въведи име на игрището.";
   if (!data.ownerName) return "Моля, въведи име на организатора.";
@@ -425,6 +442,9 @@ function validateRequest(data: {
   if (!isValidBgPhone(data.phone))
     return "Заявката не беше приета. Въведи валиден български мобилен номер с 10 цифри. Пример: 0897047668.";
   if (!isValidEmail(data.email)) return "Моля, въведи валиден email адрес.";
+  if (!data.privacyConsent) {
+    return "За да изпратиш заявка, трябва да приемеш обработката на данните според Политиката за поверителност.";
+  }
 
   const links = [
     data.website,

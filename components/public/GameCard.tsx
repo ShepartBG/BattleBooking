@@ -11,6 +11,7 @@ type GameCardProps = {
   location: string;
   maxRentalSets: number;
   status?: GameStatus;
+  description?: string | null;
   fieldName?: string;
   fieldLogo?: string;
   logoFit?: "contain" | "cover";
@@ -60,6 +61,7 @@ export default function GameCard({
   location,
   maxRentalSets,
   status = "active",
+  description = null,
   fieldName = "Airsoft Field Warzone",
   fieldLogo = "/warzone-logo.png",
   logoFit = "contain",
@@ -86,6 +88,17 @@ export default function GameCard({
       </div>
 
       <h3 className="mt-5 text-2xl font-black leading-tight text-white">{title}</h3>
+
+      {description?.trim() && (
+        <div className="mt-4 rounded-2xl border border-[#95c900]/20 bg-[#95c900]/10 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.20em] text-[#b7ef16]">
+            📝 Описание
+          </p>
+          <p className="mt-2 max-h-24 overflow-hidden whitespace-pre-line text-sm font-semibold leading-6 text-zinc-200">
+            {description}
+          </p>
+        </div>
+      )}
 
       {status === "postponed" && (
         <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center">

@@ -17,6 +17,7 @@ type Game = {
   location: string;
   max_rental_sets: number;
   status: string;
+  description?: string | null;
   field_id: string | null;
 };
 
@@ -48,7 +49,7 @@ export default function HomePage() {
       const [gamesResult, fieldsResponse] = await Promise.all([
         supabase
           .from("games")
-          .select("id,title,game_date,game_time,location,max_rental_sets,status,field_id")
+          .select("id,title,game_date,game_time,location,max_rental_sets,status,description,field_id")
           .in("status", ["active", "postponed"])
           .gte("game_date", getPublicGamesMinDate())
           .order("game_date", { ascending: true })
@@ -286,6 +287,7 @@ export default function HomePage() {
                 location={game.location}
                 maxRentalSets={game.max_rental_sets}
                 status={game.status}
+                description={game.description}
                 fieldName={fieldSettings.name}
                 fieldLogo={fieldSettings.logoUrl}
                 logoFit={fieldSettings.logoFit}

@@ -17,6 +17,7 @@ type Game = {
   location: string;
   max_rental_sets: number;
   status: string;
+  description?: string | null;
 };
 
 export default function FieldPage() {
@@ -71,7 +72,7 @@ export default function FieldPage() {
 
       const { data } = await supabase
         .from("games")
-        .select("id,title,game_date,game_time,location,max_rental_sets,status,field_id")
+        .select("id,title,game_date,game_time,location,max_rental_sets,status,description,field_id")
         .eq("field_id", fieldId)
         .in("status", ["active", "postponed"])
         .gte("game_date", getPublicGamesMinDate())
@@ -173,6 +174,7 @@ export default function FieldPage() {
                     location={game.location}
                     maxRentalSets={game.max_rental_sets}
                     status={game.status}
+                    description={game.description}
                     fieldName={fieldSettings.name}
                     fieldLogo={fieldSettings.logoUrl}
                     logoFit={fieldSettings.logoFit}

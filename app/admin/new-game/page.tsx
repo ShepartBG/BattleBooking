@@ -28,6 +28,11 @@ const gameTimeOptions = Array.from({ length: 48 }, (_, index) => {
   return `${hour}:${minute}`;
 });
 
+
+function cleanText(value: FormDataEntryValue | null, maxLength = 1000) {
+  return String(value || "").replace(/[<>]/g, "").replace(/javascript:/gi, "").trim().slice(0, maxLength);
+}
+
 export default function NewGamePage() {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -64,15 +69,15 @@ export default function NewGamePage() {
     }
 
     const { error } = await supabase.from("games").insert({
-      title: formData.get("title"),
+      title: cleanText(formData.get("title"), 120),
       game_date: toInputDate(selectedDate),
       game_time: formData.get("game_time"),
-      location: finalLocation,
+      location: cleanText(finalLocation, 200),
       max_rental_sets: Number.isFinite(rentalSets) ? rentalSets : 0,
-      rules_text: formData.get("rules_text"),
+      rules_text: cleanText(formData.get("rules_text"), 3000),
       rules_version: "v1.0",
       status: formData.get("status"),
-      description: formData.get("description"),
+      description: cleanText(formData.get("description"), 1000),
       field_id: context.fieldId,
     });
 

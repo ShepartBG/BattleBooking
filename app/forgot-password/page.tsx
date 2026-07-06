@@ -26,6 +26,25 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true);
+
+    const rateCheck = await fetch("/api/security/rate-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "password_reset" }),
+    });
+
+    if (!rateCheck.ok) {
+      setLoading(false);
+      setError("Твърде много заявки за нова парола. Опитай пак след около 1 час.");
+      return;
+    }
+
+    await fetch("/api/security/rate-consume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "password_reset" }),
+    });
+
     const redirectTo = getResetPasswordRedirect(window.location.origin);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo,

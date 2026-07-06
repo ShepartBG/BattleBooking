@@ -167,3 +167,10 @@ textarea {
     background-attachment: scroll;
   }
 }
+
+.legal-content h2 {
+  margin-top: 1.5rem;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #b7ef16;
+}

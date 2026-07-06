@@ -44,6 +44,19 @@ function LoginContent() {
     }
 
     setLoading(true);
+
+    const rateCheck = await fetch("/api/security/rate-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "login_failed" }),
+    });
+
+    if (!rateCheck.ok) {
+      setLoading(false);
+      setError("Твърде много грешни опити за вход. Опитай пак след около 10 минути.");
+      return;
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
@@ -51,6 +64,11 @@ function LoginContent() {
     });
 
     if (loginError) {
+      await fetch("/api/security/rate-consume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "login_failed" }),
+      });
       setLoading(false);
       setError("Грешен имейл или парола. Провери данните и опитай пак.");
       return;

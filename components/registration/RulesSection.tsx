@@ -1,15 +1,19 @@
 type RulesSectionProps = {
   rulesRead: boolean;
   acceptedRules: boolean;
+  acceptedPrivacy: boolean;
   onOpenRules: () => void;
-  onAcceptedChange: (value: boolean) => void;
+  onAcceptedRulesChange: (value: boolean) => void;
+  onAcceptedPrivacyChange: (value: boolean) => void;
 };
 
 export default function RulesSection({
   rulesRead,
   acceptedRules,
+  acceptedPrivacy,
   onOpenRules,
-  onAcceptedChange,
+  onAcceptedRulesChange,
+  onAcceptedPrivacyChange,
 }: RulesSectionProps) {
   return (
     <div className="rounded-2xl border border-lime-400/25 bg-lime-400/10 p-3">
@@ -34,24 +38,42 @@ export default function RulesSection({
         {rulesRead ? "ИНСТРУКТАЖЪТ Е ПРОЧЕТЕН ✅" : "ПРОЧЕТИ ИНСТРУКТАЖА"}
       </button>
 
-      <label className="mt-3 flex items-start gap-3 text-sm text-zinc-300">
-        <input
-          type="checkbox"
-          className="mt-1 h-5 w-5 accent-lime-500"
-          disabled={!rulesRead}
-          checked={acceptedRules}
-          onChange={(e) => onAcceptedChange(e.target.checked)}
-        />
+      <div className="mt-3 space-y-3">
+        <label className="flex items-start gap-3 text-sm text-zinc-300">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5 accent-lime-500"
+            disabled={!rulesRead}
+            checked={acceptedRules}
+            onChange={(e) => onAcceptedRulesChange(e.target.checked)}
+          />
 
-        <span>
-          Прочетох инструктажа и приемам условията.
-          {!rulesRead && (
-            <span className="block text-xs text-zinc-500">
-              Полето се отключва след отваряне на инструктажа.
+          <span>
+            Прочетох и приемам инструктажа за безопасност.
+            {!rulesRead && (
+              <span className="block text-xs text-zinc-500">
+                Полето се отключва след отваряне на инструктажа.
+              </span>
+            )}
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 text-sm text-zinc-300">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5 accent-lime-500"
+            checked={acceptedPrivacy}
+            onChange={(e) => onAcceptedPrivacyChange(e.target.checked)}
+          />
+
+          <span>
+            Съгласен съм личните ми данни да бъдат обработвани за записване за тази игра.
+            <span className="mt-1 block text-xs text-zinc-500">
+              Данните се обработват съгласно <a className="text-lime-300 underline" href="/privacy" target="_blank">Политиката за поверителност</a>, а използването на платформата е съгласно <a className="text-lime-300 underline" href="/terms" target="_blank">Общите условия</a>.
             </span>
-          )}
-        </span>
-      </label>
+          </span>
+        </label>
+      </div>
     </div>
   );
 }

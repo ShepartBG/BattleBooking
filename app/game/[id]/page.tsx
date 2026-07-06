@@ -28,6 +28,7 @@ type Game = {
   rules_text: string;
   rules_version: string;
   status: string;
+  description?: string | null;
   postponed_reason?: string | null;
   field_id?: string | null;
 };
@@ -68,6 +69,7 @@ export default function PublicGamePage() {
   const [showRules, setShowRules] = useState(false);
   const [rulesRead, setRulesRead] = useState(false);
   const [acceptedRules, setAcceptedRules] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const fieldSettings = useFieldSettings(game?.field_id);
 
   const freeRentalSets = (game?.max_rental_sets ?? 0) - rentalPlayers;
@@ -129,8 +131,8 @@ export default function PublicGamePage() {
     if (!game) return alert("В момента няма активна игра за записване.");
     if (game.status !== "active")
       return alert("Регистрацията за тази игра е затворена.");
-    if (!rulesRead || !acceptedRules)
-      return alert("Първо прочетете правилата и приемете условията.");
+    if (!rulesRead || !acceptedRules || !acceptedPrivacy)
+      return alert("Първо прочетете инструктажа и приемете условията за обработка на данните.");
 
     if (hasRecentBrowserRegistration(game.id)) {
       return alert(
@@ -143,54 +145,36 @@ export default function PublicGamePage() {
     const form = e.currentTarget;
     const formData = new FormData(form);
     const participationType = String(formData.get("participation_type"));
-    const phone = String(formData.get("phone")).trim();
 
     if (participationType === "rental" && freeRentalSets <= 0) {
       setLoading(false);
       return alert("Всички комплекти под наем са резервирани.");
     }
 
-    const { data: existingPhones, error: phoneCheckError } = await supabase
-      .from("registrations")
-      .select("id")
-      .eq("game_id", game.id)
-      .eq("phone", phone)
-      .eq("status", "active");
-
-    if (phoneCheckError) {
-      setLoading(false);
-      return alert("Грешка при проверка на телефона.");
-    }
-
-    if (existingPhones && existingPhones.length > 0) {
-      setLoading(false);
-      return alert("Този телефон вече е записан за тази игра.");
-    }
-
-    const code = "BB" + Math.floor(1000 + Math.random() * 9000);
-
-    const { error } = await supabase.from("registrations").insert({
-      game_id: game.id,
-      first_name: formData.get("first_name"),
-      last_name: formData.get("last_name"),
-      phone,
-      age: Number(formData.get("age")),
-      participation_type: participationType,
-      registration_code: code,
-      declaration_accepted: true,
-      declaration_text: game.rules_text,
-      declaration_accepted_at: new Date().toISOString(),
-      rules_version: game.rules_version,
-      status: "active",
+    const response = await fetch("/api/registrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        game_id: game.id,
+        first_name: formData.get("first_name"),
+        last_name: formData.get("last_name"),
+        phone: formData.get("phone"),
+        age: formData.get("age"),
+        participation_type: participationType,
+        accepted_rules: acceptedRules && acceptedPrivacy,
+      }),
     });
 
+    const result = await response.json().catch(() => null);
     setLoading(false);
 
-    if (error) return alert("Грешка при записване: " + error.message);
+    if (!response.ok) {
+      return alert(result?.error || "Грешка при записване. Опитай пак.");
+    }
 
     saveBrowserRegistration(game.id);
     await loadStats(game.id);
-    setSuccessCode(code);
+    setSuccessCode(result.code);
   }
 
   if (successCode) {
@@ -243,7 +227,7 @@ export default function PublicGamePage() {
           date={formatDate(game.game_date)}
           time={game.game_time?.slice(0, 5)}
           location={game.location}
-          description={null}
+          description={game.description}
           fieldName={fieldSettings.name}
           fieldLogo={fieldSettings.logoUrl}
           backgroundUrl={fieldSettings.backgroundUrl}
@@ -269,9 +253,11 @@ export default function PublicGamePage() {
               freeRentalSets={freeRentalSets}
               rulesRead={rulesRead}
               acceptedRules={acceptedRules}
+              acceptedPrivacy={acceptedPrivacy}
               onSubmit={handleSubmit}
               onOpenRules={() => setShowRules(true)}
               onAcceptedRulesChange={setAcceptedRules}
+              onAcceptedPrivacyChange={setAcceptedPrivacy}
             />
 
             <LiveInfoPanel

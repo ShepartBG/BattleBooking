@@ -17,9 +17,11 @@ type Props = {
   freeRentalSets: number;
   rulesRead: boolean;
   acceptedRules: boolean;
+  acceptedPrivacy: boolean;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onOpenRules: () => void;
   onAcceptedRulesChange: (value: boolean) => void;
+  onAcceptedPrivacyChange: (value: boolean) => void;
 };
 
 export default function RegistrationForm({
@@ -27,9 +29,11 @@ export default function RegistrationForm({
   freeRentalSets,
   rulesRead,
   acceptedRules,
+  acceptedPrivacy,
   onSubmit,
   onOpenRules,
   onAcceptedRulesChange,
+  onAcceptedPrivacyChange,
 }: Props) {
   const [errors, setErrors] = useState<RegistrationErrors>({});
 
@@ -79,12 +83,14 @@ export default function RegistrationForm({
         <RulesSection
           rulesRead={rulesRead}
           acceptedRules={acceptedRules}
+          acceptedPrivacy={acceptedPrivacy}
           onOpenRules={onOpenRules}
-          onAcceptedChange={onAcceptedRulesChange}
+          onAcceptedRulesChange={onAcceptedRulesChange}
+          onAcceptedPrivacyChange={onAcceptedPrivacyChange}
         />
         <SubmitButton
           loading={loading}
-          disabled={!rulesRead || !acceptedRules}
+          disabled={!rulesRead || !acceptedRules || !acceptedPrivacy}
         />
       </form>
     </Card>

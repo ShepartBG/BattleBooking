@@ -40,6 +40,11 @@ function toInputDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+
+function cleanText(value: FormDataEntryValue | null, maxLength = 1000) {
+  return String(value || "").replace(/[<>]/g, "").replace(/javascript:/gi, "").trim().slice(0, maxLength);
+}
+
 export default function EditGamePage() {
   const params = useParams();
   const router = useRouter();
@@ -101,14 +106,14 @@ export default function EditGamePage() {
     let query = supabase
       .from("games")
       .update({
-        title: String(formData.get("title") || "").trim(),
+        title: cleanText(formData.get("title"), 120),
         game_date: toInputDate(selectedDate),
         game_time: formData.get("game_time"),
-        location: String(formData.get("location") || "").trim(),
+        location: cleanText(formData.get("location"), 200),
         max_rental_sets: Number.isFinite(rentalSets) ? rentalSets : 0,
         status: formData.get("status"),
-        description: String(formData.get("description") || "").trim(),
-        rules_text: String(formData.get("rules_text") || "").trim(),
+        description: cleanText(formData.get("description"), 1000),
+        rules_text: cleanText(formData.get("rules_text"), 3000),
       })
       .eq("id", gameId);
 
