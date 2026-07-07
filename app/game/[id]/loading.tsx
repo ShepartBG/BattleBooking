@@ -1,5 +1,5 @@
-import HomeLoader from "@/components/home/HomeLoader";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function Loading() {
-  return <HomeLoader />;
+  return <LoadingScreen title="Зареждане..." subtitle="Отваряме страницата на играта" />;
 }

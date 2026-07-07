@@ -9,11 +9,11 @@ import StatsCards from "@/components/StatsCards";
 import RegistrationForm from "@/components/registration/RegistrationForm";
 import LiveInfoPanel from "@/components/home/LiveInfoPanel";
 import SuccessScreen from "@/components/home/SuccessScreen";
-import HomeLoader from "@/components/home/HomeLoader";
 import NoActiveGame from "@/components/home/NoActiveGame";
 import RulesModal from "@/components/home/RulesModal";
 import PublicShell from "@/components/public/PublicShell";
-import { useFieldSettings } from "@/lib/useFieldSettings";
+import LoadingScreen from "@/components/LoadingScreen";
+import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
 import { isGameStillPublic } from "@/lib/gameVisibility";
 
 const DAILY_BROWSER_REGISTRATION_MS = 24 * 60 * 60 * 1000;
@@ -70,7 +70,7 @@ export default function PublicGamePage() {
   const [rulesRead, setRulesRead] = useState(false);
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
-  const fieldSettings = useFieldSettings(game?.field_id);
+  const [fieldSettings, setFieldSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
 
   const freeRentalSets = (game?.max_rental_sets ?? 0) - rentalPlayers;
   const ownPlayers = totalPlayers - rentalPlayers;
@@ -86,19 +86,21 @@ export default function PublicGamePage() {
   async function loadGame() {
     setGameLoading(true);
 
-    const { data, error } = await supabase
-      .from("games")
-      .select("*")
-      .eq("id", gameId)
-      .maybeSingle();
+    const response = await fetch(`/api/public-game/${gameId}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
-      alert("Грешка при зареждане на играта: " + error.message);
+    if (!response.ok || !result?.ok) {
+      alert(result?.error || "Грешка при зареждане на играта.");
       setGameLoading(false);
       return;
     }
 
-    setGame(data ?? null);
+    setGame(result.game ?? null);
+    setFieldSettings(result.fieldSettings ?? DEFAULT_FIELD_SETTINGS);
+    setTotalPlayers(Number(result.stats?.totalPlayers || 0));
+    setRentalPlayers(Number(result.stats?.rentalPlayers || 0));
     setGameLoading(false);
   }
 
@@ -120,10 +122,6 @@ export default function PublicGamePage() {
   useEffect(() => {
     if (gameId) loadGame();
   }, [gameId]);
-
-  useEffect(() => {
-    if (game?.id) loadStats(game.id);
-  }, [game]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -194,7 +192,7 @@ export default function PublicGamePage() {
   }
 
   if (gameLoading) {
-    return <HomeLoader />;
+    return <LoadingScreen title="Зареждане..." subtitle="Отваряме страницата на играта" />;
   }
 
   if (!game) {
