@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
-import { supabase } from "@/lib/supabase";
 import { fieldRequestReceivedEmail } from "@/lib/email/fieldRequestEmails";
 
 type FormAlert = {
@@ -82,29 +81,34 @@ export default function RegisterFieldPage() {
 
     const receivedEmail = fieldRequestReceivedEmail(fieldName);
 
-    const { error } = await supabase.from("field_requests").insert({
-      field_name: cleanTitle(fieldName, 80),
-      owner_name: cleanPersonName(ownerName, 80),
-      email,
-      phone,
-      city: cleanLocation(city, 120),
-      website: website || null,
-      facebook: facebook || null,
-      instagram: instagram || null,
-      tiktok: tiktok || null,
-      message: message || null,
-      status: "pending",
-      decision_message: receivedEmail.body,
+    const createResponse = await fetch("/api/field-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "create",
+        field_name: cleanTitle(fieldName, 80),
+        owner_name: cleanPersonName(ownerName, 80),
+        email,
+        phone,
+        city: cleanLocation(city, 120),
+        website: website || null,
+        facebook: facebook || null,
+        instagram: instagram || null,
+        tiktok: tiktok || null,
+        message: message || null,
+        decision_message: receivedEmail.body,
+      }),
     });
+    const createResult = await createResponse.json().catch(() => null);
 
     setIsSubmitting(false);
 
-    if (error) {
+    if (!createResponse.ok) {
       setAlert({
         type: "error",
         message:
-          "Заявката не беше изпратена. Провери дали си пуснал SQL файла в Supabase. Детайл: " +
-          error.message,
+          createResult?.error ||
+          "Заявката не беше изпратена. Моля, опитай отново.",
       });
       return;
     }
@@ -495,44 +499,35 @@ async function checkActiveFieldRequest({
   phone: string;
   fieldName: string;
 }) {
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedPhone = normalizePhone(phone);
-  const normalizedFieldName = normalizeFieldName(fieldName);
+  try {
+    const response = await fetch("/api/field-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "check",
+        email: email.trim().toLowerCase(),
+        phone: normalizePhone(phone),
+        field_name: fieldName,
+      }),
+    });
+    const result = await response.json().catch(() => null);
 
-  const { data, error } = await supabase
-    .from("field_requests")
-    .select("id,status,email,phone,field_name")
-    .in("status", ["pending", "payment_pending", "active", "suspended"])
-    .limit(500);
+    if (!response.ok) {
+      return { request: undefined, error: new Error(result?.error || "Check failed") };
+    }
 
-  if (error) {
-    return { request: undefined, error };
+    return {
+      request: result?.duplicate
+        ? ({ status: String(result.duplicate.status || "pending") } as { status: string })
+        : undefined,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      request: undefined,
+      error: error instanceof Error ? error : new Error("Check failed"),
+    };
   }
-
-  const request = (data || []).find((item) => {
-    const itemEmail = String(item.email || "").trim().toLowerCase();
-    const itemPhone = normalizePhone(String(item.phone || ""));
-    const itemFieldName = normalizeFieldName(String(item.field_name || ""));
-
-    return (
-      itemEmail === normalizedEmail ||
-      itemPhone === normalizedPhone ||
-      itemFieldName === normalizedFieldName
-    );
-  });
-
-  return {
-    request: request as
-      | {
-          id: string;
-          status: string;
-          email: string;
-          phone: string;
-          field_name: string;
-        }
-      | undefined,
-    error: null,
-  };
 }
 
 function getDuplicateMessage(status: string) {

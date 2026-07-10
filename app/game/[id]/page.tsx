@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Hero from "@/components/Hero";
 import StatsCards from "@/components/StatsCards";
 import RegistrationForm from "@/components/registration/RegistrationForm";
@@ -104,21 +103,6 @@ export default function PublicGamePage() {
     setGameLoading(false);
   }
 
-  async function loadStats(id: string) {
-    const { data, error } = await supabase
-      .from("registrations")
-      .select("participation_type")
-      .eq("game_id", id)
-      .eq("status", "active");
-
-    if (error) return alert("Грешка при зареждане на статистиката.");
-
-    setTotalPlayers(data.length);
-    setRentalPlayers(
-      data.filter((item) => item.participation_type === "rental").length,
-    );
-  }
-
   useEffect(() => {
     if (gameId) loadGame();
   }, [gameId]);
@@ -171,7 +155,7 @@ export default function PublicGamePage() {
     }
 
     saveBrowserRegistration(game.id);
-    await loadStats(game.id);
+    await loadGame();
     setSuccessCode(result.code);
   }
 
