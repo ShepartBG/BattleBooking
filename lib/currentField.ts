@@ -1,6 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { isOwnerEmail } from "@/lib/access";
-import { ensureRealFieldId } from "@/lib/fieldIdentity";
 
 export type CurrentFieldContext = {
   userEmail: string;
@@ -8,53 +6,39 @@ export type CurrentFieldContext = {
   fieldId: string | null;
 };
 
-type FieldProfile = {
-  id: string;
-  field_id?: string | null;
-  field_name?: string | null;
-  city?: string | null;
-  phone?: string | null;
-  contact_phone?: string | null;
-  status?: string | null;
-  access_status?: string | null;
+type CurrentFieldResponse = {
+  ok?: boolean;
+  userEmail?: string;
+  isOwner?: boolean;
+  fieldId?: string | null;
+  message?: string;
 };
 
 export async function getCurrentFieldContext(): Promise<CurrentFieldContext> {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
 
-  if (userError || !userData.user?.email) {
-    throw new Error(userError?.message || "Няма активна login сесия.");
+  if (sessionError || !token) {
+    throw new Error(sessionError?.message || "Няма активна login сесия.");
   }
 
-  const userEmail = userData.user.email.toLowerCase();
-  const owner = isOwnerEmail(userEmail);
+  const response = await fetch("/api/current-field", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
 
-  const { data: fieldProfile, error: fieldError } = await supabase
-    .from("field_requests")
-    .select("id,field_id,field_name,city,phone,contact_phone,status,access_status")
-    .eq("email", userEmail)
-    .in("status", ["active", "payment_pending", "suspended"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<FieldProfile>();
+  const result = (await response.json().catch(() => ({}))) as CurrentFieldResponse;
 
-  if (fieldError) {
-    throw new Error(fieldError.message);
+  if (!response.ok || !result.ok) {
+    throw new Error(result.message || "Не успях да намеря профила на организатора.");
   }
 
-  if (!fieldProfile?.id) {
-    if (owner) return { userEmail, isOwner: true, fieldId: null };
-    throw new Error("Не намерих активен профил/игрище за този акаунт.");
-  }
-
-  const realFieldId = await ensureRealFieldId(supabase, fieldProfile);
-
-  if (!realFieldId) {
-    if (owner) return { userEmail, isOwner: true, fieldId: null };
-    throw new Error("Не намерих реалния field_id за този организатор.");
-  }
-
-  return { userEmail, isOwner: owner, fieldId: realFieldId };
+  return {
+    userEmail: String(result.userEmail || "").toLowerCase(),
+    isOwner: Boolean(result.isOwner),
+    fieldId: result.fieldId || null,
+  };
 }
 
 export function requireFieldId(context: CurrentFieldContext) {

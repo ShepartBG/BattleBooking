@@ -1,0 +1,16 @@
+BattleBooking v1.7.1 — field_id fix
+
+1. Copy the app and lib folders over the project folders and allow replacement.
+2. Run:
+   npm run build
+   npm run dev
+3. Test login with an organizer that previously showed:
+   "Не намерих реалния field_id за този организатор."
+4. Open any admin page. On first access the secure server route will create/find the fields row and save field_requests.field_id automatically.
+5. Then deploy:
+   git add .
+   git commit -m "Fix organizer field_id provisioning"
+   git push
+
+No new SQL migration is required.
+SUPABASE_SERVICE_ROLE_KEY must remain configured in .env.local and Vercel.

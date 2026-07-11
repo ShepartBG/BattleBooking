@@ -5,6 +5,7 @@ import type { FieldRequestStatus } from "@/lib/fieldRequests";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getResetPasswordRedirect } from "@/lib/authRedirect";
 import { buildTrialDates } from "@/lib/subscription";
+import { ensureOrganizerField } from "@/lib/server/ensureOrganizerField";
 
 const allowedStatuses: FieldRequestStatus[] = [
   "payment_pending",
@@ -123,6 +124,11 @@ export async function POST(request: Request) {
           { status: 500 },
         );
       }
+
+      // Create/link the real fields row immediately when the organizer is approved.
+      // This prevents a successful login with a missing field_id in the admin panel.
+      const realFieldId = await ensureOrganizerField(fieldRequest);
+      updatePayload.field_id = realFieldId;
 
       resetUrl = linkData.properties?.action_link || null;
 
