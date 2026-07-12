@@ -21,7 +21,14 @@ type Game = {
 
 export default function FieldPage() {
   const params = useParams<{ slug: string }>();
-  const slug = String(params?.slug || "");
+  const rawSlug = String(params?.slug || "");
+
+  let slug = rawSlug;
+  try {
+    slug = decodeURIComponent(rawSlug);
+  } catch {
+    slug = rawSlug;
+  }
   const [games, setGames] = useState<Game[]>([]);
   const [fieldSettings, setFieldSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
   const [loadingField, setLoadingField] = useState(true);

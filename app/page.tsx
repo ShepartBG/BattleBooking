@@ -40,6 +40,8 @@ export default function HomePage() {
   const [games, setGames] = useState<Game[]>([]);
   const [fields, setFields] = useState<PublicField[]>([]);
   const [fieldsById, setFieldsById] = useState<Record<string, PublicField>>({});
+  const [totalGames, setTotalGames] = useState(0);
+  const [totalFields, setTotalFields] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,13 +64,14 @@ export default function HomePage() {
       const publicFields = ((fieldsResult?.fields || []) as PublicField[]).filter((field) => field?.id);
 
       const nextFieldsById = Object.fromEntries(publicFields.map((field) => [field.id, field]));
+      const publicGames = ((gamesResult.data || []) as Game[])
+        .filter(isGameStillPublic)
+        .filter((game) => game.field_id && nextFieldsById[game.field_id]);
+
       setFieldsById(nextFieldsById);
-      setGames(
-        ((gamesResult.data || []) as Game[])
-          .filter(isGameStillPublic)
-          .filter((game) => game.field_id && nextFieldsById[game.field_id])
-          .slice(0, 3),
-      );
+      setTotalGames(publicGames.length);
+      setTotalFields(publicFields.length);
+      setGames(publicGames.slice(0, 3));
       setFields(publicFields.slice(0, 3));
       setLoading(false);
     }
@@ -110,8 +113,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-7 grid max-w-2xl grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-            <HeroStat value={loading ? "..." : String(games.length)} label="активни игри" />
-            <HeroStat value={loading ? "..." : String(fields.length)} label="активни игрища" />
+            <HeroStat value={loading ? "..." : String(totalGames)} label="активни игри" />
+            <HeroStat value={loading ? "..." : String(totalFields)} label="активни игрища" />
             <HeroStat value="Warzone" label="първо игрище" />
           </div>
         </div>
@@ -128,8 +131,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <MiniPanel label="Активни игри" value={loading ? "..." : String(games.length)} />
-            <MiniPanel label="Активни игрища" value={loading ? "..." : String(fields.length)} />
+            <MiniPanel label="Активни игри" value={loading ? "..." : String(totalGames)} />
+            <MiniPanel label="Активни игрища" value={loading ? "..." : String(totalFields)} />
           </div>
         </div>
       </section>

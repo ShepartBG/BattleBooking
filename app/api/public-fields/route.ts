@@ -109,7 +109,14 @@ async function loadPublicGamesForField(client: SupabaseLike, fieldId?: string | 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const slug = (searchParams.get("slug") || "").trim();
+    const rawSlug = (searchParams.get("slug") || "").trim();
+
+    let slug = rawSlug;
+    try {
+      slug = decodeURIComponent(rawSlug);
+    } catch {
+      slug = rawSlug;
+    }
     const fieldId = (searchParams.get("field_id") || "").trim();
     const includeGames = searchParams.get("include_games") === "1";
 
@@ -134,9 +141,21 @@ export async function GET(request: Request) {
     }
 
     if (slug) {
+      const normalizeSlug = (value: string) => {
+        try {
+          return decodeURIComponent(value).trim().toLocaleLowerCase("bg-BG");
+        } catch {
+          return value.trim().toLocaleLowerCase("bg-BG");
+        }
+      };
+
+      const requestedSlug = normalizeSlug(slug);
       const matchedRow = rows.find((row) => {
         const settings = rowToFieldSettings(row);
-        return settings.slug === slug || createFieldSlug(settings.name) === slug;
+        return (
+          normalizeSlug(settings.slug) === requestedSlug ||
+          normalizeSlug(createFieldSlug(settings.name)) === requestedSlug
+        );
       });
 
       if (!matchedRow) {
