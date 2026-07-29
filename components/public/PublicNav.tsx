@@ -11,6 +11,8 @@ const navItems = [
   { href: "/", label: "Начало" },
   { href: "/fields", label: "Игрища" },
   { href: "/games", label: "Игри" },
+  { href: "/shops", label: "Магазини" },
+  { href: "/events", label: "Събития" },
   { href: "/about", label: "Информация" },
   { href: "/contact", label: "Контакти" },
 ];

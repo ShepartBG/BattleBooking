@@ -1,13 +1,13 @@
 "use client";
 
+import BattleBookingLoader from "@/components/BattleBookingLoader";
+
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
 import GameCard from "@/components/public/GameCard";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
-import { supabase } from "@/lib/supabase";
 import { FieldSettings } from "@/lib/fieldConfig";
-import { getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
   id: string;
@@ -19,6 +19,8 @@ type Game = {
   status: string;
   description?: string | null;
   field_id: string | null;
+  fieldSettings?: FieldSettings;
+  registered_count?: number;
 };
 
 type PublicField = FieldSettings & {
@@ -39,7 +41,6 @@ type PublicField = FieldSettings & {
 export default function HomePage() {
   const [games, setGames] = useState<Game[]>([]);
   const [fields, setFields] = useState<PublicField[]>([]);
-  const [fieldsById, setFieldsById] = useState<Record<string, PublicField>>({});
   const [totalGames, setTotalGames] = useState(0);
   const [totalFields, setTotalFields] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -48,27 +49,19 @@ export default function HomePage() {
     async function loadData() {
       setLoading(true);
 
-      const [gamesResult, fieldsResponse] = await Promise.all([
-        supabase
-          .from("games")
-          .select("id,title,game_date,game_time,location,max_rental_sets,status,description,field_id")
-          .in("status", ["active", "postponed"])
-          .gte("game_date", getPublicGamesMinDate())
-          .order("game_date", { ascending: true })
-          .limit(12),
-        fetch(`/api/public-fields?t=${Date.now()}`, { cache: "no-store" }),
+      const [gamesResponse, fieldsResponse] = await Promise.all([
+        fetch("/api/public-games"),
+        fetch("/api/public-fields"),
       ]);
 
-      const fieldsResult = await fieldsResponse.json().catch(() => null);
+      const [gamesResult, fieldsResult] = await Promise.all([
+        gamesResponse.json().catch(() => null),
+        fieldsResponse.json().catch(() => null),
+      ]);
 
       const publicFields = ((fieldsResult?.fields || []) as PublicField[]).filter((field) => field?.id);
+      const publicGames = ((gamesResult?.games || []) as Game[]);
 
-      const nextFieldsById = Object.fromEntries(publicFields.map((field) => [field.id, field]));
-      const publicGames = ((gamesResult.data || []) as Game[])
-        .filter(isGameStillPublic)
-        .filter((game) => game.field_id && nextFieldsById[game.field_id]);
-
-      setFieldsById(nextFieldsById);
       setTotalGames(publicGames.length);
       setTotalFields(publicFields.length);
       setGames(publicGames.slice(0, 3));
@@ -78,6 +71,16 @@ export default function HomePage() {
 
     loadData();
   }, []);
+
+  if (loading) {
+    return (
+      <BattleBookingLoader
+        variant="fullscreen"
+        title="ЗАРЕЖДА СЕ НАЧАЛНАТА СТРАНИЦА..."
+        subtitle="Подготвяме активните игри и игрища"
+      />
+    );
+  }
 
   return (
     <PublicShell>
@@ -113,8 +116,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-7 grid max-w-2xl grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-            <HeroStat value={loading ? "..." : String(totalGames)} label="активни игри" />
-            <HeroStat value={loading ? "..." : String(totalFields)} label="активни игрища" />
+            <HeroStat value={String(totalGames)} label="активни игри" />
+            <HeroStat value={String(totalFields)} label="активни игрища" />
             <HeroStat value="Warzone" label="първо игрище" />
           </div>
         </div>
@@ -131,8 +134,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <MiniPanel label="Активни игри" value={loading ? "..." : String(totalGames)} />
-            <MiniPanel label="Активни игрища" value={loading ? "..." : String(totalFields)} />
+            <MiniPanel label="Активни игри" value={String(totalGames)} />
+            <MiniPanel label="Активни игрища" value={String(totalFields)} />
           </div>
         </div>
       </section>
@@ -231,7 +234,7 @@ export default function HomePage() {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
           {loading ? (
-            <LoadingCard text="Зареждане на игрищата..." />
+            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИЩАТА..." subtitle="Подготвяме активните терени" /></div>
           ) : fields.length > 0 ? (
             fields.map((field) => (
               <FieldCard
@@ -275,10 +278,10 @@ export default function HomePage() {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
           {loading ? (
-            <LoadingCard text="Зареждане на активни игри..." />
+            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИТЕ..." subtitle="Проверяваме активните записвания" /></div>
           ) : games.length > 0 ? (
             games.map((game) => {
-              const fieldSettings = fieldsById[game.field_id as string];
+              const fieldSettings = game.fieldSettings;
 
               return (
               <GameCard
@@ -291,12 +294,13 @@ export default function HomePage() {
                 maxRentalSets={game.max_rental_sets}
                 status={game.status}
                 description={game.description}
-                fieldName={fieldSettings.name}
-                fieldLogo={fieldSettings.logoUrl}
-                logoFit={fieldSettings.logoFit}
-                logoScale={fieldSettings.logoScale}
-                logoX={fieldSettings.logoX}
-                logoY={fieldSettings.logoY}
+                fieldName={fieldSettings?.name || "Игрище"}
+                fieldLogo={fieldSettings?.logoUrl}
+                logoFit={fieldSettings?.logoFit}
+                logoScale={fieldSettings?.logoScale}
+                logoX={fieldSettings?.logoX}
+                logoY={fieldSettings?.logoY}
+                registeredCount={game.registered_count || 0}
               />
               );
             })

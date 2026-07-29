@@ -1,0 +1,9 @@
+BattleBooking v1.10.0 - UNIFIED LOADING SYSTEM
+
+- New BattleBooking loader with central logo and a smoothly orbiting grenade.
+- Fullscreen route loading for all public, authentication and admin pages.
+- Context-specific Bulgarian loading text for each page.
+- Branded section loaders for Home, Fields, Games, Shops and Events.
+- Branded admin loaders for Dashboard, Calendar, Requests, Statistics, Settings, Gallery, Shops and Events.
+- Button loading states remain compact so saving and uploading do not unnecessarily cover the whole screen.
+- Existing multi-field, contacts, pricing, speed and modern feedback changes are preserved.

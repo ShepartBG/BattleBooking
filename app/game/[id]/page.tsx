@@ -82,12 +82,13 @@ export default function PublicGamePage() {
     });
   }
 
-  async function loadGame() {
+  async function loadGame(forceFresh = false) {
     setGameLoading(true);
 
-    const response = await fetch(`/api/public-game/${gameId}`, {
-      cache: "no-store",
-    });
+    const response = await fetch(
+      forceFresh ? `/api/public-game/${gameId}?refresh=${Date.now()}` : `/api/public-game/${gameId}`,
+      forceFresh ? { cache: "no-store" } : undefined,
+    );
     const result = await response.json().catch(() => null);
 
     if (!response.ok || !result?.ok) {
@@ -155,7 +156,7 @@ export default function PublicGamePage() {
     }
 
     saveBrowserRegistration(game.id);
-    await loadGame();
+    await loadGame(true);
     setSuccessCode(result.code);
   }
 

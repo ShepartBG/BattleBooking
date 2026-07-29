@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { isOwnerEmail } from "@/lib/access";
 
 type Props = {
-  active: "games" | "new-game" | "calendar" | "stats" | "settings" | "requests";
+  active: "games" | "new-game" | "calendar" | "stats" | "settings" | "requests" | "fields" | "gallery" | "shops" | "events";
   children: ReactNode;
 };
 
@@ -18,7 +18,11 @@ const adminLinks = [
   { key: "new-game", href: "/admin/new-game", label: "Нова игра" },
   { key: "calendar", href: "/admin/calendar", label: "Календар" },
   { key: "stats", href: "/admin/stats", label: "Статистика" },
+  { key: "fields", href: "/admin/fields", label: "Игрища" },
+  { key: "gallery", href: "/admin/gallery", label: "Галерия" },
   { key: "requests", href: "/admin/requests", label: "Заявки" },
+  { key: "shops", href: "/admin/shops", label: "Магазини" },
+  { key: "events", href: "/admin/events", label: "Събития" },
   { key: "settings", href: "/admin/settings", label: "Настройки" },
 ] as const;
 
@@ -44,7 +48,7 @@ export default function AdminShell({ active, children }: Props) {
   }, []);
 
   const visibleAdminLinks = useMemo(
-    () => adminLinks.filter((link) => link.key !== "requests" || isOwner),
+    () => adminLinks.filter((link) => !["requests", "shops", "events"].includes(link.key) || isOwner),
     [isOwner],
   );
 

@@ -42,3 +42,35 @@ export function isGameStillPublic(game: VisibleGame) {
 
   return visibleUntil.getTime() >= Date.now();
 }
+export async function closeExpiredGames(admin: any) {
+  const today = formatLocalDate(new Date());
+
+  const { data, error } = await admin
+    .from("games")
+    .select("id,game_date,game_time,status")
+    .in("status", ["active", "postponed"])
+    .lte("game_date", today);
+
+  if (error || !Array.isArray(data) || data.length === 0) {
+    return { closed: 0, error: error?.message || null };
+  }
+
+  const expiredIds = data
+    .filter((game: VisibleGame & { id?: string | null }) => !isGameStillPublic(game))
+    .map((game: { id?: string | null }) => String(game.id || ""))
+    .filter(Boolean);
+
+  if (expiredIds.length === 0) return { closed: 0, error: null };
+
+  const { error: updateError } = await admin
+    .from("games")
+    .update({ status: "closed" })
+    .in("id", expiredIds)
+    .in("status", ["active", "postponed"]);
+
+  return {
+    closed: updateError ? 0 : expiredIds.length,
+    error: updateError?.message || null,
+  };
+}
+

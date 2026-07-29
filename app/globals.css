@@ -186,3 +186,196 @@ textarea {
     transform: translateX(220%);
   }
 }
+
+/* BattleBooking unified loading system */
+.bb-loader {
+  color: white;
+}
+
+.bb-loader-fullscreen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  background:
+    radial-gradient(circle at 50% 27%, rgba(149, 201, 0, 0.12), transparent 26%),
+    radial-gradient(circle at top, rgba(34, 54, 20, 0.12), transparent 45%),
+    linear-gradient(180deg, #020403 0%, #050807 48%, #000 100%);
+}
+
+.bb-loader-section {
+  min-height: 300px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(149, 201, 0, 0.1), transparent 35%),
+    rgba(0, 0, 0, 0.56);
+  backdrop-filter: blur(14px);
+}
+
+.bb-loader-inline {
+  min-height: 150px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.bb-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.bb-loader-orbit {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  display: grid;
+  place-items: center;
+}
+
+.bb-loader-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 239, 22, 0.17);
+  box-shadow: inset 0 0 24px rgba(149, 201, 0, 0.05);
+}
+
+.bb-loader-logo-wrap {
+  width: 108px;
+  height: 108px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  filter: drop-shadow(0 0 18px rgba(149, 201, 0, 0.08));
+}
+
+.bb-loader-logo {
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  animation: bb-loader-logo-breathe 2.2s ease-in-out infinite;
+}
+
+.bb-loader-grenade-track {
+  position: absolute;
+  inset: 0;
+  animation: bb-loader-orbit 2.15s linear infinite;
+}
+
+.bb-loader-grenade {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 25px;
+  height: 25px;
+  color: #b7ef16;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 7px rgba(183, 239, 22, 0.48));
+  animation: bb-loader-grenade-counter 2.15s linear infinite;
+}
+
+.bb-loader-progress {
+  width: 150px;
+  height: 6px;
+  margin-top: 1.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bb-loader-progress-bar {
+  width: 48%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7fae00, #b7ef16, #95c900);
+  box-shadow: 0 0 14px rgba(183, 239, 22, 0.45);
+  animation: loading-bar 1.25s ease-in-out infinite;
+}
+
+.bb-loader-title {
+  margin-top: 1.65rem;
+  font-size: 1.18rem;
+  line-height: 1.25;
+  font-weight: 950;
+  letter-spacing: 0.21em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.bb-loader-subtitle {
+  margin-top: 0.72rem;
+  max-width: 28rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #a1a1aa;
+}
+
+.bb-loader-section .bb-loader-orbit,
+.bb-loader-inline .bb-loader-orbit {
+  width: 118px;
+  height: 118px;
+}
+
+.bb-loader-section .bb-loader-logo-wrap,
+.bb-loader-section .bb-loader-logo,
+.bb-loader-inline .bb-loader-logo-wrap,
+.bb-loader-inline .bb-loader-logo {
+  width: 82px;
+  height: 82px;
+}
+
+.bb-loader-section .bb-loader-grenade,
+.bb-loader-inline .bb-loader-grenade {
+  width: 21px;
+  height: 21px;
+}
+
+.bb-loader-inline .bb-loader-title {
+  margin-top: 1rem;
+  font-size: 0.86rem;
+}
+
+.bb-loader-inline .bb-loader-subtitle {
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+}
+
+.bb-loader-inline .bb-loader-progress {
+  margin-top: 0.9rem;
+  width: 112px;
+}
+
+@keyframes bb-loader-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bb-loader-grenade-counter {
+  to { transform: translateX(-50%) rotate(-360deg); }
+}
+
+@keyframes bb-loader-logo-breathe {
+  0%, 100% { transform: scale(0.98); opacity: 0.9; }
+  50% { transform: scale(1.035); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bb-loader-grenade-track,
+  .bb-loader-grenade,
+  .bb-loader-logo,
+  .bb-loader-progress-bar {
+    animation-duration: 4s;
+  }
+}

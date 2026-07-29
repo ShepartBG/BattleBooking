@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
-import { FieldCardSkeleton } from "@/components/ui/Skeleton";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 
 type PublicField = {
   id: string;
@@ -18,6 +18,7 @@ type PublicField = {
   logoScale: number;
   logoX: number;
   logoY: number;
+  fieldCount?: number;
 };
 
 export default function FieldsPage() {
@@ -29,9 +30,7 @@ export default function FieldsPage() {
       setLoading(true);
 
       try {
-        const response = await fetch(`/api/public-fields?t=${Date.now()}`, {
-          cache: "no-store",
-        });
+        const response = await fetch("/api/public-fields");
         const result = await response.json();
 
         if (!response.ok || !result.ok) {
@@ -72,9 +71,7 @@ export default function FieldsPage() {
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {loading ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <FieldCardSkeleton key={index} />
-            ))
+            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИЩАТА..." subtitle="Подготвяме активните терени" /></div>
           ) : fields.length > 0 ? (
             fields.map((field) => (
               <FieldCard
@@ -89,7 +86,7 @@ export default function FieldsPage() {
                 logoScale={field.logoScale}
                 logoX={field.logoX}
                 logoY={field.logoY}
-                status="Активно"
+                status={field.fieldCount && field.fieldCount > 1 ? `${field.fieldCount} игрища` : "1 игрище"}
               />
             ))
           ) : (

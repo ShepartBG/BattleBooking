@@ -1,4 +1,5 @@
 "use client";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -63,6 +64,7 @@ export default function RequestsPage() {
   const [selected, setSelected] = useState<FieldRequest | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [emailRecipient, setEmailRecipient] = useState<FieldRequest | "all" | null>(null);
   const { Dialog, bbAlert, bbConfirm } = useBattleBookingDialog();
 
   async function loadRequests() {
@@ -187,6 +189,14 @@ export default function RequestsPage() {
     };
   }, [requests]);
 
+  if (loading) {
+    return (
+      <AdminShell active="requests">
+        <BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ЗАЯВКИТЕ..." subtitle="Проверяваме новите организатори" />
+      </AdminShell>
+    );
+  }
+
   return (
     <AdminShell active="requests">
       <Dialog />
@@ -204,12 +214,21 @@ export default function RequestsPage() {
                 </p>
               </div>
 
-              <button
-                onClick={loadRequests}
-                className="rounded-2xl bg-lime-500 px-5 py-3 text-center font-black text-black hover:bg-lime-400"
-              >
-                Обнови
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={() => setEmailRecipient("all")}
+                  disabled={stats.active === 0}
+                  className="rounded-2xl border border-blue-400/30 bg-blue-500/15 px-5 py-3 text-center font-black text-blue-100 hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ✉️ Изпрати до всички организатори
+                </button>
+                <button
+                  onClick={loadRequests}
+                  className="rounded-2xl bg-lime-500 px-5 py-3 text-center font-black text-black hover:bg-lime-400"
+                >
+                  Обнови
+                </button>
+              </div>
             </div>
 
             {emailStatus && (
@@ -271,6 +290,12 @@ export default function RequestsPage() {
                       <button className="admin-action border border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.1]" onClick={() => setSelected(request)}>
                         View
                       </button>
+                      <button
+                        className="admin-action border border-cyan-400/25 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25"
+                        onClick={() => setEmailRecipient(request)}
+                      >
+                        ✉️ Изпрати имейл
+                      </button>
                       <button disabled={savingId === request.id} className="admin-action border border-blue-400/25 bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 disabled:opacity-60" onClick={() => updateStatus(request, "payment_pending")}>
                         Payment
                       </button>
@@ -298,9 +323,212 @@ export default function RequestsPage() {
           )}
 
           {selected && <RequestDetails request={selected} onClose={() => setSelected(null)} />}
+          {emailRecipient && (
+            <OwnerEmailModal
+              recipient={emailRecipient}
+              activeCount={stats.active}
+              onClose={() => setEmailRecipient(null)}
+              onSent={(message) => {
+                setEmailStatus(message);
+                setEmailRecipient(null);
+              }}
+            />
+          )}
         </section>
       </OwnerGuard>
     </AdminShell>
+  );
+}
+
+
+function OwnerEmailModal({
+  recipient,
+  activeCount,
+  onClose,
+  onSent,
+}: {
+  recipient: FieldRequest | "all";
+  activeCount: number;
+  onClose: () => void;
+  onSent: (message: string) => void;
+}) {
+  const isAll = recipient === "all";
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function selectFiles(event: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (selectedFiles.length > 4) {
+      setError("Можеш да прикачиш най-много 4 снимки.");
+      event.target.value = "";
+      return;
+    }
+    const oversized = selectedFiles.find((file) => file.size > 5 * 1024 * 1024);
+    if (oversized) {
+      setError(`Снимката „${oversized.name}“ е над 5 MB.`);
+      event.target.value = "";
+      return;
+    }
+    setError(null);
+    setFiles(selectedFiles);
+  }
+
+  async function sendEmail() {
+    if (!subject.trim() || !message.trim()) {
+      setError("Попълни тема и текст на имейла.");
+      return;
+    }
+
+    setSending(true);
+    setError(null);
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setError("Owner сесията е изтекла. Влез отново.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("mode", isAll ? "all" : "single");
+      formData.append("subject", subject.trim());
+      formData.append("message", message.trim());
+
+      if (!isAll) {
+        formData.append("recipientEmail", recipient.email);
+        formData.append("recipientName", recipient.owner_name || recipient.field_name);
+      }
+
+      files.forEach((file) => formData.append("attachments", file));
+
+      const response = await fetch("/api/admin/owner-email", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        setError(result?.message || "Имейлът не беше изпратен.");
+        return;
+      }
+
+      onSent(result.message || "Имейлът е изпратен успешно.");
+    } catch {
+      setError("Възникна проблем при изпращането на имейла.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+      <div className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-lime-400/25 bg-zinc-950 p-5 shadow-2xl sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-lime-300">Owner Email Center</p>
+            <h3 className="mt-2 text-3xl font-black">Изпрати имейл</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              {isAll
+                ? `До всички активни организатори (${activeCount})`
+                : `До ${recipient.owner_name} · ${recipient.email}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={sending}
+            className="rounded-2xl bg-white/[0.07] px-4 py-2 font-black hover:bg-white/[0.12] disabled:opacity-50"
+          >
+            ✕
+          </button>
+        </div>
+
+        {isAll && (
+          <div className="mt-5 rounded-2xl border border-blue-400/25 bg-blue-500/10 p-4 text-sm leading-6 text-blue-100">
+            Писмото ще бъде изпратено отделно до всеки активен организатор. Получателите няма да виждат чуждите имейл адреси.
+          </div>
+        )}
+
+        <div className="mt-6 space-y-4">
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Тема</span>
+            <input
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              maxLength={160}
+              placeholder="Например: Нов BattleBooking update"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/70 px-4 py-3 text-white outline-none focus:border-lime-400/50"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Съобщение</span>
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              maxLength={8000}
+              rows={10}
+              placeholder="Напиши информацията за update, плащане или друго важно съобщение..."
+              className="mt-2 w-full resize-y rounded-2xl border border-white/10 bg-black/70 px-4 py-3 leading-6 text-white outline-none focus:border-lime-400/50"
+            />
+            <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs leading-5 text-zinc-500">
+              Форматиране: празен ред за нов абзац · <strong className="text-zinc-300"># Заглавие</strong> · <strong className="text-zinc-300">✅ или - за списък</strong> · <strong className="text-zinc-300">**удебелен текст**</strong>
+            </div>
+            <span className="mt-1 block text-right text-xs text-zinc-600">{message.length}/8000</span>
+          </label>
+
+          <label className="block rounded-2xl border border-dashed border-white/15 bg-white/[0.035] p-4 transition hover:border-lime-400/35">
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Прикачи снимки</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              onChange={selectFiles}
+              className="mt-3 block w-full text-sm text-zinc-300 file:mr-4 file:rounded-xl file:border-0 file:bg-lime-500 file:px-4 file:py-2 file:font-black file:text-black hover:file:bg-lime-400"
+            />
+            <p className="mt-2 text-xs leading-5 text-zinc-500">До 4 снимки · максимум 5 MB на снимка · JPG, PNG, WEBP или GIF.</p>
+          </label>
+
+          {files.length > 0 && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {files.map((file) => (
+                <div key={`${file.name}-${file.size}`} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-zinc-300">
+                  📎 {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+                </div>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm font-bold text-red-200">{error}</div>
+          )}
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={sending}
+            className="rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-3 font-black text-white hover:bg-white/[0.1] disabled:opacity-50"
+          >
+            Отказ
+          </button>
+          <button
+            type="button"
+            onClick={sendEmail}
+            disabled={sending}
+            className="rounded-2xl bg-lime-500 px-6 py-3 font-black text-black hover:bg-lime-400 disabled:cursor-wait disabled:opacity-60"
+          >
+            {sending ? "Изпращане..." : isAll ? "Изпрати до всички" : "Изпрати имейла"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

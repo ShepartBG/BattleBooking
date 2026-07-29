@@ -1,8 +1,15 @@
+export type EmailAttachment = {
+  filename: string;
+  content: string;
+  contentType?: string;
+};
+
 export type SendEmailInput = {
-  to: string;
+  to: string | string[];
   subject: string;
   text: string;
   html: string;
+  attachments?: EmailAttachment[];
 };
 
 export type SendEmailResult = {
@@ -23,6 +30,7 @@ export async function sendBattleBookingEmail({
   subject,
   text,
   html,
+  attachments = [],
 }: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -51,6 +59,7 @@ export async function sendBattleBookingEmail({
       text,
       html,
       reply_to: replyTo,
+      ...(attachments.length > 0 ? { attachments } : {}),
     }),
   });
 

@@ -1,0 +1,21 @@
+BATTLEBOOKING v1.8.1 — MEDIA FIX
+
+1) Supabase > SQL Editor
+2) Run: supabase/supabase-battlebooking-v1.8.1-media-fix.sql
+3) Replace the project files with this ZIP
+4) Run locally:
+   npm install
+   npm run build
+   npm run dev
+5) Test:
+   - Admin > Моите игрища > add a field
+   - Upload logo and background directly from the computer
+   - Admin > Галерия > upload up to 10 photos
+   - Admin > Създай игра > select field from dropdown
+
+Fixes:
+- Removed dependency on missing fields.active column
+- Replaced Logo URL / Background URL inputs with file uploads
+- Gallery checks the real database count before upload
+- Multiple-image upload supported, maximum 10 per field
+- Deleted gallery images are also removed from Storage where possible

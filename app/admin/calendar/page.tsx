@@ -1,4 +1,5 @@
 "use client";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -149,6 +150,14 @@ export default function AdminCalendarPage() {
   function moveMonth(direction: number) {
     setCurrentMonth(
       (date) => new Date(date.getFullYear(), date.getMonth() + direction, 1),
+    );
+  }
+
+  if (loading) {
+    return (
+      <AdminShell active="calendar">
+        <BattleBookingLoader variant="section" title="ЗАРЕЖДА СЕ КАЛЕНДАРЪТ..." subtitle="Подреждаме предстоящите игри" />
+      </AdminShell>
     );
   }
 

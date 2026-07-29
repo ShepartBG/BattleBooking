@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
-import { GameCardSkeleton } from "@/components/ui/Skeleton";
-import { supabase } from "@/lib/supabase";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 import { FieldSettings } from "@/lib/fieldConfig";
-import { getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 
 type Game = {
   id: string;
@@ -18,47 +16,30 @@ type Game = {
   status: string;
   description?: string | null;
   field_id: string | null;
-};
-
-type PublicField = FieldSettings & {
-  id: string;
-  name: string;
+  fieldSettings?: FieldSettings;
+  registered_count?: number;
 };
 
 export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([]);
-  const [fieldsById, setFieldsById] = useState<Record<string, PublicField>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadGames() {
       setLoading(true);
 
-      const [{ data }, fieldsResponse] = await Promise.all([
-        supabase
-          .from("games")
-          .select("id,title,game_date,game_time,location,max_rental_sets,status,description,field_id")
-          .in("status", ["active", "postponed"])
-          .gte("game_date", getPublicGamesMinDate())
-          .order("game_date", { ascending: true }),
-        fetch(`/api/public-fields?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
-      ]);
+      const gamesResponse = await fetch("/api/public-games").catch(() => null);
 
-      let nextFieldsById: Record<string, PublicField> = {};
+      let nextGames: Game[] = [];
 
-      if (fieldsResponse?.ok) {
-        const result = await fieldsResponse.json().catch(() => null);
-        if (result?.ok && Array.isArray(result.fields)) {
-          nextFieldsById = Object.fromEntries(
-            result.fields
-              .filter((field: PublicField) => field?.id)
-              .map((field: PublicField) => [field.id, field]),
-          );
+      if (gamesResponse?.ok) {
+        const result = await gamesResponse.json().catch(() => null);
+        if (result?.ok && Array.isArray(result.games)) {
+          nextGames = result.games as Game[];
         }
       }
 
-      setFieldsById(nextFieldsById);
-      setGames(((data || []) as Game[]).filter(isGameStillPublic));
+      setGames(nextGames);
       setLoading(false);
     }
 
@@ -83,14 +64,10 @@ export default function GamesPage() {
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
           {loading ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <GameCardSkeleton key={index} />
-            ))
-          ) : games.filter((game) => game.field_id && fieldsById[game.field_id]).length > 0 ? (
-            games
-              .filter((game) => game.field_id && fieldsById[game.field_id])
-              .map((game) => {
-              const fieldSettings = fieldsById[game.field_id as string];
+            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИТЕ..." subtitle="Проверяваме активните записвания" /></div>
+          ) : games.length > 0 ? (
+            games.map((game) => {
+              const fieldSettings = game.fieldSettings;
 
               return (
                 <GameCard
@@ -103,12 +80,13 @@ export default function GamesPage() {
                   maxRentalSets={game.max_rental_sets}
                   status={game.status}
                   description={game.description}
-                  fieldName={fieldSettings.name}
-                  fieldLogo={fieldSettings.logoUrl}
-                  logoFit={fieldSettings.logoFit}
-                  logoScale={fieldSettings.logoScale}
-                  logoX={fieldSettings.logoX}
-                  logoY={fieldSettings.logoY}
+                  fieldName={fieldSettings?.name || "Игрище"}
+                  fieldLogo={fieldSettings?.logoUrl}
+                  logoFit={fieldSettings?.logoFit}
+                  logoScale={fieldSettings?.logoScale}
+                  logoX={fieldSettings?.logoX}
+                  logoY={fieldSettings?.logoY}
+                  registeredCount={game.registered_count || 0}
                 />
               );
             })

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import FloatingHomeButton from "@/components/brand/FloatingHomeButton";
 import CookieBanner from "@/components/CookieBanner";
+import { FeedbackProvider } from "@/components/ui/FeedbackProvider";
 import "react-datepicker/dist/react-datepicker.css";
 import "./globals.css";
 
@@ -26,9 +27,11 @@ export default function RootLayout({
   return (
     <html lang="bg" className="h-full antialiased">
       <body className="min-h-full bg-black text-white">
-        {children}
-        <CookieBanner />
-        <FloatingHomeButton />
+        <FeedbackProvider>
+          {children}
+          <CookieBanner />
+          <FloatingHomeButton />
+        </FeedbackProvider>
       </body>
     </html>
   );

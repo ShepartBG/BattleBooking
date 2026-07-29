@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkRateLimit, consumeRateLimit, getClientIp, isValidName, isValidPhone, normalizePhone, sanitizePlainText } from "@/lib/security";
-import { isGameStillPublic } from "@/lib/gameVisibility";
+import { closeExpiredGames, isGameStillPublic } from "@/lib/gameVisibility";
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
   if (!acceptedRules) return NextResponse.json({ error: "Трябва да приемеш правилата и условията." }, { status: 400 });
 
   const supabase = getSupabaseAdmin();
+  await closeExpiredGames(supabase);
   const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", gameId).maybeSingle();
   if (gameError || !game) return NextResponse.json({ error: "Играта не е намерена." }, { status: 404 });
   if (game.status !== "active" || !isGameStillPublic(game)) {

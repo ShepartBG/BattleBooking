@@ -1,4 +1,5 @@
 "use client";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 
 import { useEffect, useMemo, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -126,6 +127,14 @@ export default function AdminStatsPage() {
       topGame,
     };
   }, [games, registrations]);
+
+  if (loading) {
+    return (
+      <AdminShell active="stats">
+        <BattleBookingLoader variant="section" title="ЗАРЕЖДА СЕ СТАТИСТИКАТА..." subtitle="Изчисляваме игрите и регистрациите" />
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell active="stats">

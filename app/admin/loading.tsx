@@ -1,5 +1,5 @@
 import LoadingScreen from "@/components/LoadingScreen";
 
 export default function Loading() {
-  return <LoadingScreen title="Зареждане..." subtitle="Отваряме административния панел" />;
+  return <LoadingScreen title="ЗАРЕЖДАНЕ..." subtitle="Отваряме административния панел" />;
 }

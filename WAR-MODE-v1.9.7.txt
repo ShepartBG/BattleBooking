@@ -1,0 +1,10 @@
+BattleBooking v1.9.7 - PUBLIC LOADING SPEED FIX
+
+Optimizations only; multi-field logic preserved.
+- Public API short CDN cache (5-30 sec)
+- Removed Date.now cache-busters and no-store from public pages
+- Public games field branding now loads with 3 bulk DB queries instead of 2-3 queries per field
+- Registration refresh remains immediate and bypasses cache after successful signup
+- Admin/API writes remain uncached
+
+Replace the full project folder and run npm install / npm run dev as usual.

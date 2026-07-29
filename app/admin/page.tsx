@@ -1,4 +1,5 @@
 "use client";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -53,48 +54,27 @@ export default function AdminPage() {
     if (!error) setPendingRequests(count || 0);
   }
 
-  async function loadGames(nextFieldId = fieldId, ownerMode = isOwner) {
-    let query = supabase
-      .from("games")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!ownerMode) {
-      if (!nextFieldId) {
-        setGames([]);
-        setActivity([]);
-        return [] as Game[];
-      }
-      query = query.eq("field_id", nextFieldId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      bbAlert("Грешка при зареждане: " + error.message, "Грешка");
-      return [] as Game[];
-    }
-
-    const loadedGames = (data || []) as Game[];
-    setGames(loadedGames);
-    return loadedGames;
+  async function getToken() {
+    return (await supabase.auth.getSession()).data.session?.access_token || "";
   }
 
-  async function loadActivity(gameIds: string[]) {
-    if (gameIds.length === 0) {
+  async function loadGames() {
+    const token = await getToken();
+    const response = await fetch("/api/admin/games", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({ ok: false, message: "Невалиден отговор." }));
+    if (!response.ok || !result.ok) {
+      bbAlert("Грешка при зареждане: " + (result.message || "Неуспешно зареждане."), "Грешка");
+      setGames([]);
       setActivity([]);
-      return;
+      return [] as Game[];
     }
-
-    const { data, error } = await supabase
-      .from("registrations")
-      .select("id,first_name,last_name,participation_type,created_at,game_id")
-      .in("game_id", gameIds)
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    if (!error) setActivity((data || []) as ActivityItem[]);
+    const loadedGames = (result.games || []) as Game[];
+    setGames(loadedGames);
+    setActivity((result.activity || []) as ActivityItem[]);
+    return loadedGames;
   }
 
   async function updateGameStatus(
@@ -102,47 +82,30 @@ export default function AdminPage() {
     newStatus: "active" | "closed" | "postponed",
   ) {
     let postponedReason: string | null = null;
-
     if (newStatus === "postponed") {
       const reason = await bbPrompt(
         "Причина за отлагане:\n\nНапример: Лоши метеорологични условия или недостатъчен брой записани играчи.",
         "Играта се отлага поради организационни причини.",
         "Отлагане на игра",
       );
-
       if (reason === null) return;
-      postponedReason =
-        reason.trim() || "Играта се отлага поради организационни причини.";
+      postponedReason = reason.trim() || "Играта се отлага поради организационни причини.";
     } else {
       const confirmed = await bbConfirm(
-        newStatus === "closed"
-          ? "Сигурен ли си, че искаш да затвориш играта?"
-          : "Сигурен ли си, че искаш да активираш играта?",
+        newStatus === "closed" ? "Сигурен ли си, че искаш да затвориш играта?" : "Сигурен ли си, че искаш да активираш играта?",
         newStatus === "closed" ? "Затваряне на игра" : "Активиране на игра",
       );
-
       if (!confirmed) return;
     }
-
-    const payload: { status: string; postponed_reason?: string | null } = {
-      status: newStatus,
-    };
-
-    if (newStatus === "postponed") payload.postponed_reason = postponedReason;
-    if (newStatus === "active") payload.postponed_reason = null;
-
-    let updateQuery = supabase.from("games").update(payload).eq("id", gameId);
-    if (!isOwner && fieldId) updateQuery = updateQuery.eq("field_id", fieldId);
-
-    const { error } = await updateQuery;
-
-    if (error)
-      return bbAlert(
-        "Грешка при промяна на статуса: " + error.message,
-        "Грешка",
-      );
-    const loadedGames = await loadGames();
-    await loadActivity(loadedGames.map((game) => game.id));
+    const token = await getToken();
+    const response = await fetch("/api/admin/games", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: gameId, status: newStatus, postponed_reason: postponedReason }),
+    });
+    const result = await response.json().catch(() => ({ ok: false, message: "Невалиден отговор." }));
+    if (!response.ok || !result.ok) return bbAlert("Грешка при промяна на статуса: " + (result.message || "Неуспешна промяна."), "Грешка");
+    await loadGames();
   }
 
   async function deleteGame(gameId: string, title: string) {
@@ -150,39 +113,16 @@ export default function AdminPage() {
       `Сигурен ли си, че искаш да изтриеш играта "${title}"?\n\nТова ще изтрие и записаните играчи към нея.`,
       "Изтриване на игра",
     );
-
     if (!confirmed) return;
-
-    const gameIsAllowed =
-      isOwner || games.some((game) => game.id === gameId && (!fieldId || true));
-    if (!gameIsAllowed) {
-      return bbAlert("Нямаш право да изтриеш тази игра.", "Забранен достъп");
-    }
-
-    const { error: registrationsError } = await supabase
-      .from("registrations")
-      .delete()
-      .eq("game_id", gameId);
-
-    if (registrationsError) {
-      return bbAlert(
-        "Грешка при изтриване на записванията: " + registrationsError.message,
-        "Грешка",
-      );
-    }
-
-    let deleteQuery = supabase.from("games").delete().eq("id", gameId);
-    if (!isOwner && fieldId) deleteQuery = deleteQuery.eq("field_id", fieldId);
-
-    const { error } = await deleteQuery;
-
-    if (error)
-      return bbAlert(
-        "Грешка при изтриване на играта: " + error.message,
-        "Грешка",
-      );
-    const loadedGames = await loadGames();
-    await loadActivity(loadedGames.map((game) => game.id));
+    const token = await getToken();
+    const response = await fetch("/api/admin/games", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: gameId }),
+    });
+    const result = await response.json().catch(() => ({ ok: false, message: "Невалиден отговор." }));
+    if (!response.ok || !result.ok) return bbAlert("Грешка при изтриване на играта: " + (result.message || "Неуспешно изтриване."), "Грешка");
+    await loadGames();
   }
 
   async function copyRegistrationLink(gameId: string) {
@@ -208,8 +148,7 @@ export default function AdminPage() {
         const ownerMode = owner || context.isOwner;
         setIsOwner(ownerMode);
         setFieldId(context.fieldId);
-        const loadedGames = await loadGames(context.fieldId, ownerMode);
-        await loadActivity(loadedGames.map((game) => game.id));
+        await loadGames();
         if (ownerMode) await loadPendingRequests();
         setIsLoading(false);
       } catch (error) {
@@ -236,6 +175,14 @@ export default function AdminPage() {
     (game) => game.status === "postponed",
   ).length;
   const closedGames = games.filter((game) => game.status === "closed").length;
+
+  if (isLoading) {
+    return (
+      <AdminShell active="games">
+        <BattleBookingLoader variant="section" title="ЗАРЕЖДА СЕ КОНТРОЛНИЯТ ПАНЕЛ..." subtitle="Подготвяме игрите, записванията и активността" />
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell active="games">

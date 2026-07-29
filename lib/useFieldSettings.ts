@@ -25,13 +25,12 @@ export function readFieldSettings(): FieldSettings {
 
 async function loadPublicFieldSettings(fieldId?: string | null) {
   try {
-    const params = new URLSearchParams({ t: String(Date.now()) });
+    const params = new URLSearchParams();
     const cleanFieldId = fieldId?.trim();
     if (cleanFieldId) params.set("field_id", cleanFieldId);
 
-    const response = await fetch(`/api/public-fields?${params.toString()}`, {
-      cache: "no-store",
-    });
+    const query = params.toString();
+    const response = await fetch(`/api/public-fields${query ? `?${query}` : ""}`);
     const result = await response.json().catch(() => null);
 
     const field = cleanFieldId ? result?.field : result?.fields?.[0];

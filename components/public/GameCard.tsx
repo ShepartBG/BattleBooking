@@ -19,6 +19,7 @@ type GameCardProps = {
   logoScale?: number;
   logoX?: number;
   logoY?: number;
+  registeredCount?: number;
 };
 
 function formatDate(date: string) {
@@ -69,6 +70,7 @@ export default function GameCard({
   logoScale = 1,
   logoX = 0,
   logoY = 0,
+  registeredCount = 0,
 }: GameCardProps) {
   const statusView = getStatusView(status);
 
@@ -114,6 +116,13 @@ export default function GameCard({
         <Info label="Час" value={`🕒 ${time?.slice(0, 5)}`} />
         <Info label="Локация" value={location} isLocation />
         <Info label="Наеми" value={`🎒 ${maxRentalSets}`} />
+      </div>
+
+      <div className="mt-4 flex min-h-12 items-center justify-between rounded-2xl border border-[#95c900]/20 bg-[#95c900]/[0.08] px-4 py-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.20em] text-zinc-500">
+          👥 Записани
+        </span>
+        <span className="text-lg font-black text-[#b7ef16]">{registeredCount}</span>
       </div>
 
       <Link

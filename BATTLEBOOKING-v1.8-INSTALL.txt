@@ -1,0 +1,18 @@
+BATTLEBOOKING v1.8 — WAR MODE
+
+1) В Supabase отвори SQL Editor.
+2) Пусни целия файл:
+   supabase/supabase-battlebooking-v1.8-community.sql
+3) След успешен SQL deploy-ни проекта във Vercel.
+
+НОВО:
+- Моите игрища: /admin/fields
+- Dropdown и автоматично попълване при Нова игра
+- Галерия до 10 снимки на игрище: /admin/gallery
+- Публична галерия в профила на игрището
+- Магазини: /shops (добавяне само от owner: /admin/shops)
+- Събития: /events (добавяне само от owner: /admin/events)
+- Подготовка за повече от едно игрище на организатор
+
+ВАЖНО:
+Първо пусни SQL файла. Без него новите страници ще дадат грешка за липсващи таблици/колони/bucket.

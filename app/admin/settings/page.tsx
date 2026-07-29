@@ -1,4 +1,5 @@
 "use client";
+import BattleBookingLoader from "@/components/BattleBookingLoader";
 
 import { useEffect, useRef, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -233,38 +234,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <AdminShell active="settings">
-        <section className="space-y-5">
-          <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
-            <SkeletonLine className="h-4 w-32" />
-            <SkeletonLine className="mt-4 h-10 w-72 max-w-full" />
-            <SkeletonLine className="mt-4 h-5 w-full max-w-2xl" />
-          </div>
-          <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-            <div className="space-y-5">
-              <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5">
-                <SkeletonLine className="h-6 w-48" />
-                <div className="mt-5 space-y-4">
-                  <SkeletonBox className="h-14" />
-                  <SkeletonBox className="h-14" />
-                  <SkeletonBox className="h-14" />
-                  <SkeletonBox className="h-28" />
-                </div>
-              </div>
-              <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5">
-                <SkeletonLine className="h-6 w-56" />
-                <div className="mt-5 space-y-4">
-                  <SkeletonBox className="h-14" />
-                  <SkeletonBox className="h-14" />
-                  <SkeletonBox className="h-14" />
-                </div>
-              </div>
-            </div>
-            <div className="rounded-[2rem] border border-white/10 bg-black/65 p-5">
-              <SkeletonLine className="h-4 w-40" />
-              <SkeletonBox className="mt-5 h-[420px] rounded-[2rem]" />
-            </div>
-          </div>
-        </section>
+        <BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ НАСТРОЙКИТЕ..." subtitle="Подготвяме профила и визията на игрището" />
       </AdminShell>
     );
   }

@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdminShell from "@/components/admin/AdminShell";
 import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
-import { getCurrentFieldContext } from "@/lib/currentField";
 
 type Registration = {
   id: string;
@@ -43,104 +42,42 @@ export default function GamePlayersPage() {
   const [players, setPlayers] = useState<Registration[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fieldId, setFieldId] = useState<string | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
   const { Dialog, bbAlert, bbConfirm } = useBattleBookingDialog();
+
+  async function getToken() {
+    return (await supabase.auth.getSession()).data.session?.access_token || "";
+  }
 
   async function cancelPlayer(playerId: string) {
     const confirmed = await bbConfirm("Сигурен ли си, че искаш да анулираш този играч?", "Анулиране на играч");
     if (!confirmed) return;
-
-    if (!isOwner && !fieldId) {
-      return bbAlert("Нямаш право да анулираш играч от тази игра.", "Забранен достъп");
-    }
-
-    const { error } = await supabase
-      .from("registrations")
-      .update({ status: "cancelled" })
-      .eq("id", playerId);
-
-    if (error) return bbAlert("Грешка при анулиране: " + error.message, "Грешка");
+    const token = await getToken();
+    const response = await fetch("/api/admin/games", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "cancel_registration", id: gameId, registration_id: playerId }),
+    });
+    const result = await response.json().catch(() => ({ ok: false, message: "Невалиден отговор." }));
+    if (!response.ok || !result.ok) return bbAlert("Грешка при анулиране: " + (result.message || "Неуспешно анулиране."), "Грешка");
     await loadData();
   }
 
   async function loadData() {
     setLoading(true);
-
-    let context;
-    try {
-      context = await getCurrentFieldContext();
-      setFieldId(context.fieldId);
-      setIsOwner(context.isOwner);
-    } catch (error) {
-      bbAlert(error instanceof Error ? error.message : "Грешка при проверка на достъпа.", "Грешка");
-      setLoading(false);
-      return;
-    }
-
-    let gameQuery = supabase
-      .from("games")
-      .select("id, title, game_date, game_time, location, max_rental_sets, field_id")
-      .eq("id", gameId);
-
-    if (!context.isOwner) {
-      if (!context.fieldId) {
-        bbAlert("Нямаш достъп до тази игра.", "Забранен достъп");
-        router.replace("/admin");
-        setLoading(false);
-        return;
-      }
-      gameQuery = gameQuery.eq("field_id", context.fieldId);
-    }
-
-    const { data: gameData, error: gameError } = await gameQuery.single();
-
-    if (gameError) {
-      bbAlert("Играта не е намерена или нямаш достъп до нея: " + gameError.message, "Грешка");
+    const token = await getToken();
+    const response = await fetch(`/api/admin/games?id=${encodeURIComponent(gameId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({ ok: false, message: "Невалиден отговор." }));
+    if (!response.ok || !result.ok) {
+      bbAlert("Играта не е намерена или нямаш достъп до нея: " + (result.message || "Неуспешно зареждане."), "Грешка");
       router.replace("/admin");
       setLoading(false);
       return;
     }
-
-    const { data: playersData, error: playersError } = await supabase
-      .from("registrations")
-      .select("*")
-      .eq("game_id", gameId)
-      .eq("status", "active")
-      .order("created_at", { ascending: true });
-
-    if (playersError) {
-      bbAlert("Грешка при зареждане на играчите: " + playersError.message, "Грешка");
-      setLoading(false);
-      return;
-    }
-
-    const phones = (playersData || []).map((player) => player.phone);
-
-    const { data: previousRegistrations, error: previousError } = await supabase
-      .from("registrations")
-      .select("phone, game_id")
-      .in("phone", phones.length > 0 ? phones : ["__none__"])
-      .neq("game_id", gameId)
-      .eq("status", "active");
-
-    if (previousError) {
-      bbAlert("Грешка при проверка за ветерани: " + previousError.message, "Грешка");
-      setLoading(false);
-      return;
-    }
-
-    const veteranPhones = new Set(
-      (previousRegistrations || []).map((item) => item.phone)
-    );
-
-    setGame(gameData);
-    setPlayers(
-      (playersData || []).map((player) => ({
-        ...player,
-        isVeteran: veteranPhones.has(player.phone),
-      }))
-    );
+    setGame(result.game as Game);
+    setPlayers((result.players || []) as Registration[]);
     setLoading(false);
   }
 
