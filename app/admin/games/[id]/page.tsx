@@ -95,7 +95,7 @@ export default function GamePlayersPage() {
 
   return (
     <AdminShell active="games">
-      <Dialog />
+      {Dialog}
       <section className="space-y-5">
         <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
           <a href="/admin" className="text-sm font-black text-lime-300">

@@ -105,23 +105,18 @@ export default function AdminShell({ active, children }: Props) {
         </div>
 
         <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/86 px-2 py-2 backdrop-blur-2xl lg:hidden">
-          <div
-            className="mx-auto grid max-w-xl gap-2 text-[11px] font-black text-zinc-300"
-            style={{
-              gridTemplateColumns: `repeat(${visibleAdminLinks.length}, minmax(0, 1fr))`,
-            }}
-          >
+          <div className="bb-mobile-admin-nav mx-auto flex max-w-xl gap-2 overflow-x-auto pb-1 text-[11px] font-black text-zinc-300">
             {visibleAdminLinks.map((link) => (
               <a
                 key={link.key}
                 href={link.href}
-                className={`min-h-12 rounded-2xl px-2 py-2 text-center ${
+                className={`flex min-h-12 min-w-[82px] shrink-0 items-center justify-center rounded-2xl px-2 py-2 text-center leading-tight ${
                   active === link.key
                     ? "bg-lime-400 text-black"
                     : "bg-white/[0.07] text-white"
                 }`}
               >
-                {link.label}
+                <span className="max-w-full break-words">{link.label}</span>
               </a>
             ))}
           </div>

@@ -186,7 +186,7 @@ export default function AdminPage() {
 
   return (
     <AdminShell active="games">
-      <Dialog />
+      {Dialog}
       <section className="space-y-4 sm:space-y-5">
         <div className="overflow-hidden rounded-[1.75rem] border border-lime-400/15 bg-black/65 backdrop-blur-xl sm:rounded-[2rem]">
           <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">

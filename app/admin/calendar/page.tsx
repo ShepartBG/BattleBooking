@@ -163,7 +163,7 @@ export default function AdminCalendarPage() {
 
   return (
     <AdminShell active="calendar">
-      <Dialog />
+      {Dialog}
       <section className="space-y-5">
         <div className="overflow-hidden rounded-[2rem] border border-lime-400/15 bg-black/65 backdrop-blur-xl">
           <div className="grid md:grid-cols-[1.35fr_0.65fr]">

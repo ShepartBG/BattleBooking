@@ -98,9 +98,10 @@ export default function RequestsPage() {
     setSavingId(request.id);
     setEmailStatus(null);
 
+    const token = (await supabase.auth.getSession()).data.session?.access_token || "";
     const response = await fetch("/api/admin/field-request-status", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ requestId: request.id, status }),
     });
 
@@ -113,6 +114,36 @@ export default function RequestsPage() {
     }
 
     setEmailStatus(result.message || `Статусът е запазен успешно за ${request.email}.`);
+    await loadRequests();
+  }
+
+  async function renewSubscription(request: FieldRequest) {
+    const confirmed = await bbConfirm(
+      `Подновяване на абонамента за "${request.field_name}" с още 30 дни.\n\nАко текущият абонамент още е активен, 30-те дни ще се добавят след сегашната крайна дата. Ако е изтекъл, ще започнат от днес.\n\nДа продължа ли?`,
+      "Подновяване на абонамент",
+    );
+    if (!confirmed) return;
+
+    setSavingId(request.id);
+    setEmailStatus(null);
+    const token = (await supabase.auth.getSession()).data.session?.access_token || "";
+    const response = await fetch("/api/admin/subscription-renew", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ requestId: request.id }),
+    });
+    const result = await response.json().catch(() => null);
+    setSavingId(null);
+
+    if (!response.ok || !result?.ok) {
+      bbAlert(result?.message || "Грешка при подновяване на абонамента.", "Грешка");
+      return;
+    }
+
+    setEmailStatus(result.message || `Абонаментът е подновен успешно за ${request.email}.`);
     await loadRequests();
   }
 
@@ -199,7 +230,7 @@ export default function RequestsPage() {
 
   return (
     <AdminShell active="requests">
-      <Dialog />
+      {Dialog}
       <OwnerGuard>
         <section className="space-y-5">
           <div className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-6 backdrop-blur-xl">
@@ -286,7 +317,7 @@ export default function RequestsPage() {
                       )}
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[360px] xl:grid-cols-3 xl:justify-end">
+                    <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[440px] xl:grid-cols-3 xl:justify-end">
                       <button className="admin-action border border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.1]" onClick={() => setSelected(request)}>
                         View
                       </button>
@@ -301,6 +332,14 @@ export default function RequestsPage() {
                       </button>
                       <button disabled={savingId === request.id} className="admin-action border border-lime-400/30 bg-lime-400/15 text-lime-200 hover:bg-lime-400/25 disabled:opacity-60" onClick={() => updateStatus(request, "active")}>
                         Approve
+                      </button>
+                      <button
+                        disabled={savingId === request.id || !request.trial_started_at}
+                        className="admin-action border border-emerald-300/30 bg-emerald-400/15 text-emerald-100 hover:bg-emerald-400/25 disabled:cursor-not-allowed disabled:opacity-40"
+                        onClick={() => renewSubscription(request)}
+                        title={!request.trial_started_at ? "Първо активирай клиента с Approve" : "Добави още 30 дни"}
+                      >
+                        🔄 Поднови +30 дни
                       </button>
                       <button disabled={savingId === request.id} className="admin-action border border-orange-400/25 bg-orange-500/15 text-orange-200 hover:bg-orange-500/25 disabled:opacity-60" onClick={() => updateStatus(request, "suspended")}>
                         Suspend

@@ -256,3 +256,33 @@ ${resetLine}
 
   return fieldRequestReceivedEmail(safeName);
 }
+
+
+export function subscriptionRenewedEmail(
+  fieldName: string,
+  subscriptionValidUntil: string,
+  graceUntil: string,
+): EmailTemplate {
+  const safeName = fieldName || "Вашето игрище";
+  const loginUrl = `${SITE_URL.replace(/\/$/, "")}/login`;
+  const mainBody = `Здравейте,
+
+Абонаментът за ${safeName} в BattleBooking е подновен успешно.
+
+Новата валидност на достъпа е до ${formatBgDate(subscriptionValidUntil)}.
+Гратисният срок е до ${formatBgDate(graceUntil)}.
+
+Не е необходимо да създавате нов акаунт или парола. Можете да продължите да използвате платформата със съществуващия си профил.`;
+
+  return {
+    subject: "BattleBooking: абонаментът Ви е подновен успешно ✅",
+    body: buildText(mainBody),
+    html: buildEmailHtml({
+      title: "Абонаментът Ви е подновен",
+      intro: `${safeName} продължава с активен BattleBooking достъп.`,
+      body: mainBody,
+      ctaLabel: "Вход в BattleBooking",
+      ctaUrl: loginUrl,
+    }),
+  };
+}

@@ -34,6 +34,24 @@ export function buildTrialDates(now = new Date()) {
   };
 }
 
+export const PAID_SUBSCRIPTION_DAYS = 30;
+
+export function buildRenewalDates(currentValidUntil?: string | null, now = new Date()) {
+  const today = toDateOnly(now);
+  const cleanCurrent = String(currentValidUntil || "").slice(0, 10);
+  const base = cleanCurrent && cleanCurrent >= today
+    ? new Date(`${cleanCurrent}T00:00:00`)
+    : new Date(`${today}T00:00:00`);
+
+  const validUntil = addDays(base, PAID_SUBSCRIPTION_DAYS);
+  const graceUntil = addDays(validUntil, GRACE_DAYS);
+
+  return {
+    subscriptionValidUntil: toDateOnly(validUntil),
+    graceUntil: toDateOnly(graceUntil),
+  };
+}
+
 export function isAccessExpired(status: AccessStatus, graceUntil?: string | null) {
   if (status === "suspended" || status === "rejected") return true;
   if (status !== "active") return true;

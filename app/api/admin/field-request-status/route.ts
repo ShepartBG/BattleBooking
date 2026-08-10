@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getResetPasswordRedirect } from "@/lib/authRedirect";
 import { buildTrialDates } from "@/lib/subscription";
 import { ensureOrganizerField } from "@/lib/server/ensureOrganizerField";
+import { getAuthenticatedUser } from "@/lib/server/authenticatedUser";
 
 const allowedStatuses: FieldRequestStatus[] = [
   "payment_pending",
@@ -23,6 +24,13 @@ function randomPassword() {
 
 export async function POST(request: Request) {
   try {
+    const auth = await getAuthenticatedUser(request);
+    if (auth.error || !auth.admin) {
+      return NextResponse.json({ ok: false, message: auth.error || "Невалидна сесия." }, { status: 401 });
+    }
+    if (!auth.isOwner) {
+      return NextResponse.json({ ok: false, message: "Само owner може да променя достъпа." }, { status: 403 });
+    }
     const body = await request.json();
     const requestId = String(body.requestId || "").trim();
     const status = String(body.status || "") as FieldRequestStatus;

@@ -379,3 +379,12 @@ textarea {
     animation-duration: 4s;
   }
 }
+
+
+.bb-mobile-admin-nav {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.bb-mobile-admin-nav::-webkit-scrollbar {
+  display: none;
+}

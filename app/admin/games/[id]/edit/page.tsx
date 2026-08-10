@@ -133,7 +133,7 @@ export default function EditGamePage() {
 
   return (
     <AdminShell active="games">
-      <Dialog />
+      {Dialog}
       <section className="rounded-[2rem] border border-lime-400/15 bg-black/65 p-5 backdrop-blur-xl md:p-7">
         <a href={`/admin/games/${gameId}`} className="text-sm font-black text-lime-300">← Назад към играчите</a>
 

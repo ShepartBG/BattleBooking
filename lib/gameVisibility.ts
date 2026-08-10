@@ -5,45 +5,88 @@ export type VisibleGame = {
 };
 
 export const PUBLIC_GAME_HOLD_HOURS = 4;
+const SOFIA_TIME_ZONE = "Europe/Sofia";
 
-function formatLocalDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+type SofiaParts = { year: number; month: number; day: number; hour: number; minute: number; second: number };
 
-  return `${year}-${month}-${day}`;
+function getSofiaParts(date = new Date()): SofiaParts {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SOFIA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute),
+    second: Number(values.second),
+  };
 }
 
-export function getPublicGamesMinDate() {
-  const date = new Date();
-  date.setHours(date.getHours() - PUBLIC_GAME_HOLD_HOURS);
+function formatDateParts(year: number, month: number, day: number) {
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
 
-  return formatLocalDate(date);
+function sofiaWallClockMs(date = new Date()) {
+  const p = getSofiaParts(date);
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+}
+
+export function getPublicGamesMinDate(now = new Date()) {
+  const p = getSofiaParts(now);
+  const wallClock = new Date(Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second));
+  wallClock.setUTCHours(wallClock.getUTCHours() - PUBLIC_GAME_HOLD_HOURS);
+  return formatDateParts(wallClock.getUTCFullYear(), wallClock.getUTCMonth() + 1, wallClock.getUTCDate());
 }
 
 export function getGameStartDateTime(game: VisibleGame) {
-  if (!game.game_date) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(game.game_date || ""))) return null;
 
-  const cleanTime = (game.game_time || "23:59").slice(0, 5) || "23:59";
-  const date = new Date(`${game.game_date}T${cleanTime}:00`);
+  const cleanTime = String(game.game_time || "23:59").slice(0, 5);
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(cleanTime)) return null;
 
-  if (Number.isNaN(date.getTime())) return null;
-  return date;
+  const [year, month, day] = game.game_date.split("-").map(Number);
+  const [hour, minute] = cleanTime.split(":").map(Number);
+  const pseudoLocal = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+
+  return Number.isNaN(pseudoLocal.getTime()) ? null : pseudoLocal;
 }
 
-export function isGameStillPublic(game: VisibleGame) {
+export function isGameStillPublic(game: VisibleGame, now = new Date()) {
   if (game.status !== "active" && game.status !== "postponed") return false;
 
   const gameDateTime = getGameStartDateTime(game);
   if (!gameDateTime) return false;
 
-  const visibleUntil = new Date(gameDateTime);
-  visibleUntil.setHours(visibleUntil.getHours() + PUBLIC_GAME_HOLD_HOURS);
-
-  return visibleUntil.getTime() >= Date.now();
+  const visibleUntil = gameDateTime.getTime() + PUBLIC_GAME_HOLD_HOURS * 60 * 60 * 1000;
+  return visibleUntil >= sofiaWallClockMs(now);
 }
+
 export async function closeExpiredGames(admin: any) {
-  const today = formatLocalDate(new Date());
+  // If the SQL helper from v1.14 is installed, let Postgres close everything
+  // atomically using Europe/Sofia time. Keep the JS fallback for installations
+  // that have not run the migration yet.
+  try {
+    const rpc = await admin.rpc("bb_close_expired_games");
+    if (!rpc?.error) {
+      const value = Array.isArray(rpc?.data) ? rpc.data[0]?.closed_count : rpc?.data;
+      return { closed: Number(value || 0), error: null };
+    }
+  } catch {
+    // Fall through to the safe JS implementation.
+  }
+
+  const p = getSofiaParts(new Date());
+  const today = formatDateParts(p.year, p.month, p.day);
 
   const { data, error } = await admin
     .from("games")
@@ -73,4 +116,3 @@ export async function closeExpiredGames(admin: any) {
     error: updateError?.message || null,
   };
 }
-
