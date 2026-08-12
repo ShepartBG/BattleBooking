@@ -1,0 +1,10 @@
+BattleBooking v1.14.1 — Gallery Batch Upload Fix
+
+- Gallery now lets an organizer select up to 10 images in one file picker action.
+- Selected images are queued first; upload starts only after pressing “Качи избраните”.
+- All selected gallery files are sent to the media API as one batch operation.
+- Media API supports both legacy single-file uploads and new multi-file batches.
+- A failed storage batch cleans up files already uploaded during that same batch.
+- Gallery rows are inserted in one database request with stable sort_order.
+- The server rechecks the 10-image limit immediately before upload/save.
+- Existing logo/background single-image upload callers remain compatible.

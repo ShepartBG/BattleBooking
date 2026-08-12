@@ -45,16 +45,27 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const file = formData.get("file");
   const fieldId = String(formData.get("field_id") || "");
   const kind = String(formData.get("kind") || "gallery");
+  const manyFiles = formData.getAll("files").filter((value): value is File => value instanceof File);
+  const singleFile = formData.get("file");
+  const files = manyFiles.length > 0
+    ? manyFiles
+    : singleFile instanceof File
+      ? [singleFile]
+      : [];
 
-  if (!(file instanceof File) || !fieldId) {
+  if (files.length === 0 || !fieldId) {
     return NextResponse.json({ ok: false, message: "Липсва снимка или игрище." }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.has(file.type) || file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ ok: false, message: "Качвай само JPG, PNG, WEBP или GIF до 10 MB." }, { status: 400 });
+  if (files.length > 10) {
+    return NextResponse.json({ ok: false, message: "Можеш да качиш най-много 10 снимки наведнъж." }, { status: 400 });
+  }
+
+  const invalidFile = files.find((file) => !ALLOWED_TYPES.has(file.type) || file.size > MAX_FILE_SIZE);
+  if (invalidFile) {
+    return NextResponse.json({ ok: false, message: "Качвай само JPG, PNG, WEBP или GIF до 10 MB на снимка." }, { status: 400 });
   }
 
   if (!(await canManageField(admin, user.email || "", fieldId, isOwner))) {
@@ -63,17 +74,32 @@ export async function POST(request: Request) {
 
   const folder = kind === "logo" || kind === "background" ? "profile" : "gallery";
   const safeKind = kind === "logo" || kind === "background" ? kind : "image";
-  const path = `fields/${fieldId}/${folder}/${safeKind}-${crypto.randomUUID()}.${extensionFor(file)}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const uploaded: Array<{ path: string; publicUrl: string }> = [];
 
-  const { error: uploadError } = await admin.storage
-    .from(BUCKET)
-    .upload(path, bytes, { contentType: file.type, cacheControl: "3600", upsert: false });
+  for (const file of files) {
+    const path = `fields/${fieldId}/${folder}/${safeKind}-${crypto.randomUUID()}.${extensionFor(file)}`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
 
-  if (uploadError) {
-    return NextResponse.json({ ok: false, message: uploadError.message }, { status: 500 });
+    const { error: uploadError } = await admin.storage
+      .from(BUCKET)
+      .upload(path, bytes, { contentType: file.type, cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      // Do not leave half of a failed batch in storage.
+      if (uploaded.length > 0) {
+        await admin.storage.from(BUCKET).remove(uploaded.map((item) => item.path));
+      }
+      return NextResponse.json({ ok: false, message: uploadError.message }, { status: 500 });
+    }
+
+    const publicUrl = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    uploaded.push({ path, publicUrl });
   }
 
-  const publicUrl = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  return NextResponse.json({ ok: true, path, publicUrl });
+  // Keep backwards compatibility with existing single-file callers (logo/background).
+  if (uploaded.length === 1) {
+    return NextResponse.json({ ok: true, ...uploaded[0], uploaded });
+  }
+
+  return NextResponse.json({ ok: true, uploaded });
 }

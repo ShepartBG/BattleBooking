@@ -69,10 +69,16 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const fieldId = String(body.field_id || "");
-  const imageUrl = String(body.image_url || "").trim();
+  const imageUrls = Array.isArray(body.image_urls)
+    ? body.image_urls.map((value: unknown) => String(value || "").trim()).filter(Boolean)
+    : [String(body.image_url || "").trim()].filter(Boolean);
 
-  if (!imageUrl) {
+  if (imageUrls.length === 0) {
     return NextResponse.json({ ok: false, message: "Липсва адрес на снимката." }, { status: 400 });
+  }
+
+  if (imageUrls.length > GALLERY_LIMIT) {
+    return NextResponse.json({ ok: false, message: `Можеш да добавиш най-много ${GALLERY_LIMIT} снимки наведнъж.` }, { status: 400 });
   }
 
   if (!(await owns(admin, user.email!, fieldId))) {
@@ -90,31 +96,38 @@ export async function POST(request: Request) {
   }
 
   const currentCount = count || 0;
-  if (currentCount >= GALLERY_LIMIT) {
+  const remaining = GALLERY_LIMIT - currentCount;
+  if (remaining <= 0 || imageUrls.length > remaining) {
     return NextResponse.json(
-      { ok: false, message: `Галерията вече съдържа ${currentCount} от ${GALLERY_LIMIT} снимки. Изтрий снимка, за да качиш нова.` },
+      {
+        ok: false,
+        message: remaining <= 0
+          ? `Галерията вече съдържа ${currentCount} от ${GALLERY_LIMIT} снимки. Изтрий снимка, за да качиш нова.`
+          : `Има място само за още ${remaining} снимки.`,
+      },
       { status: 400 },
     );
   }
 
+  const rows = imageUrls.map((imageUrl: string, index: number) => ({
+    field_id: fieldId,
+    image_url: imageUrl,
+    caption: "",
+    sort_order: currentCount + index,
+    position_x: 50,
+    position_y: 50,
+  }));
+
   const { data, error: queryError } = await admin
     .from("field_images")
-    .insert({
-      field_id: fieldId,
-      image_url: imageUrl,
-      caption: String(body.caption || "").trim(),
-      sort_order: currentCount,
-      position_x: Number(body.position_x ?? 50),
-      position_y: Number(body.position_y ?? 50),
-    })
-    .select("id,image_url,caption,sort_order,position_x,position_y,created_at")
-    .single();
+    .insert(rows)
+    .select("id,image_url,caption,sort_order,position_x,position_y,created_at");
 
   if (queryError) {
     return NextResponse.json({ ok: false, message: queryError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, image: data });
+  return NextResponse.json({ ok: true, images: data || [], count: data?.length || 0 });
 }
 
 export async function PUT(request: Request) {

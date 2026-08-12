@@ -24,6 +24,7 @@ export default function Gallery() {
   const [fieldId, setFieldId] = useState("");
   const [images, setImages] = useState<ImageRow[]>([]);
   const [busy, setBusy] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -79,73 +80,103 @@ export default function Gallery() {
     void loadImages(fieldId);
   }, [fieldId]);
 
-  async function uploadFiles(fileList: FileList) {
+  function selectFiles(fileList: FileList) {
     if (!fieldId || busy) return;
 
-    const accessToken = await token();
-    const checkResponse = await fetch(`/api/admin/gallery?field_id=${fieldId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    const checkResult = await checkResponse.json();
-    if (!checkResponse.ok) {
-      return feedback.error(checkResult.message || "Не успях да проверя галерията.");
-    }
-
-    const currentImages: ImageRow[] = checkResult.images || [];
-    setImages(currentImages);
-    const remaining = LIMIT - currentImages.length;
-
+    const remaining = LIMIT - images.length;
     if (remaining <= 0) {
-      return feedback.error(`Галерията има ${LIMIT} снимки. Изтрий поне една, за да качиш нова.`);
+      setSelectedFiles([]);
+      if (inputRef.current) inputRef.current.value = "";
+      feedback.error(`Галерията има ${LIMIT} снимки. Изтрий поне една, за да качиш нова.`);
+      return;
     }
 
     const selected = Array.from(fileList);
     const invalid = selected.find(
       (file) => !file.type.startsWith("image/") || file.size > MAX_FILE_SIZE,
     );
-    if (invalid) return feedback.error("Качвай само снимки до 10 MB всяка.");
-
-    const files = selected.slice(0, remaining);
-    if (selected.length > remaining) {
-      feedback.info(`Има място само за още ${remaining} снимки. Ще кача първите ${remaining}.`);
+    if (invalid) {
+      setSelectedFiles([]);
+      if (inputRef.current) inputRef.current.value = "";
+      feedback.error("Качвай само снимки до 10 MB всяка.");
+      return;
     }
+
+    const files = selected.slice(0, Math.min(remaining, LIMIT));
+    if (selected.length > remaining) {
+      feedback.info(`Има място само за още ${remaining} снимки. Избрани са първите ${remaining}.`);
+    }
+    setSelectedFiles(files);
+  }
+
+  async function uploadSelectedFiles() {
+    if (!fieldId || busy || selectedFiles.length === 0) return;
 
     setBusy(true);
     try {
-      for (const file of files) {
-        const uploadForm = new FormData();
-        uploadForm.append("file", file);
-        uploadForm.append("field_id", fieldId);
-        uploadForm.append("kind", "gallery");
+      const accessToken = await token();
 
-        const uploadResponse = await fetch("/api/admin/media", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: uploadForm,
-        });
-        const uploadResult = await uploadResponse.json();
-        if (!uploadResponse.ok) throw new Error(uploadResult.message || "Снимката не беше качена.");
-
-        const response = await fetch("/api/admin/gallery", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ field_id: fieldId, image_url: uploadResult.publicUrl }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || "Снимката не беше записана.");
+      // Re-check the server count immediately before the batch upload so the
+      // 10-photo limit cannot be exceeded by a stale browser state.
+      const checkResponse = await fetch(`/api/admin/gallery?field_id=${fieldId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+      const checkResult = await checkResponse.json();
+      if (!checkResponse.ok) {
+        throw new Error(checkResult.message || "Не успях да проверя галерията.");
       }
 
+      const currentImages: ImageRow[] = checkResult.images || [];
+      const remaining = LIMIT - currentImages.length;
+      if (remaining <= 0) {
+        throw new Error(`Галерията вече съдържа ${LIMIT} снимки.`);
+      }
+
+      const files = selectedFiles.slice(0, remaining);
+      const uploadForm = new FormData();
+      for (const file of files) uploadForm.append("files", file);
+      uploadForm.append("field_id", fieldId);
+      uploadForm.append("kind", "gallery");
+
+      const uploadResponse = await fetch("/api/admin/media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: uploadForm,
+      });
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResponse.ok) {
+        throw new Error(uploadResult.message || "Снимките не бяха качени.");
+      }
+
+      const uploaded = Array.isArray(uploadResult.uploaded) ? uploadResult.uploaded : [];
+      const imageUrls = uploaded.map((item: { publicUrl?: string }) => item.publicUrl).filter(Boolean);
+      if (imageUrls.length !== files.length) {
+        throw new Error("Не всички избрани снимки бяха качени успешно.");
+      }
+
+      const saveResponse = await fetch("/api/admin/gallery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ field_id: fieldId, image_urls: imageUrls }),
+      });
+      const saveResult = await saveResponse.json();
+      if (!saveResponse.ok) {
+        throw new Error(saveResult.message || "Снимките не бяха записани в галерията.");
+      }
+
+      setSelectedFiles([]);
+      if (inputRef.current) inputRef.current.value = "";
       await loadImages(fieldId);
+      feedback.success(`${imageUrls.length} снимки са качени успешно.`);
     } catch (error) {
       feedback.error(error instanceof Error ? error.message : "Неочаквана грешка.");
       await loadImages(fieldId);
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
@@ -207,10 +238,10 @@ export default function Gallery() {
             className={`rounded-2xl px-5 py-3 text-center font-black ${
               busy || images.length >= LIMIT
                 ? "cursor-not-allowed bg-zinc-700 text-zinc-400"
-                : "cursor-pointer bg-lime-400 text-black"
+                : "cursor-pointer bg-white/10 text-white hover:bg-white/15"
             }`}
           >
-            {busy ? "Качване..." : `Добави снимки (${images.length}/${LIMIT})`}
+            {`Избери снимки (${images.length}/${LIMIT})`}
             <input
               ref={inputRef}
               type="file"
@@ -219,11 +250,42 @@ export default function Gallery() {
               className="hidden"
               disabled={busy || images.length >= LIMIT || !fieldId}
               onChange={(event) => {
-                if (event.target.files?.length) void uploadFiles(event.target.files);
+                if (event.target.files?.length) selectFiles(event.target.files);
               }}
             />
           </label>
+
+          <button
+            type="button"
+            onClick={() => void uploadSelectedFiles()}
+            disabled={busy || selectedFiles.length === 0 || images.length >= LIMIT || !fieldId}
+            className={`rounded-2xl px-5 py-3 text-center font-black ${
+              busy || selectedFiles.length === 0 || images.length >= LIMIT || !fieldId
+                ? "cursor-not-allowed bg-zinc-700 text-zinc-400"
+                : "bg-lime-400 text-black hover:bg-lime-300"
+            }`}
+          >
+            {busy ? "Качване..." : selectedFiles.length ? `Качи избраните (${selectedFiles.length})` : "Качи избраните"}
+          </button>
         </div>
+
+        {selectedFiles.length > 0 && !busy && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-lime-400/15 bg-lime-400/5 px-4 py-3">
+            <p className="text-sm text-lime-100">
+              Избрани: <strong>{selectedFiles.length}</strong> снимки. Натисни „Качи избраните“, за да ги качиш наведнъж.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFiles([]);
+                if (inputRef.current) inputRef.current.value = "";
+              }}
+              className="shrink-0 text-sm font-bold text-zinc-300 hover:text-white"
+            >
+              Откажи
+            </button>
+          </div>
+        )}
 
         {!fields.length && (
           <p className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-amber-100">
