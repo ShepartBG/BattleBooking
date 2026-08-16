@@ -131,7 +131,7 @@ async function loadPublicGamesForField(client: SupabaseLike, fieldId?: string | 
 
   if (error || !Array.isArray(data)) return [];
 
-  const games = data.filter(isGameStillPublic).slice(0, 6);
+  const games = data.filter((game: any) => isGameStillPublic(game)).slice(0, 6);
   const gameIds = games.map((game: any) => String(game.id)).filter(Boolean);
   if (!gameIds.length) return games;
 
@@ -154,6 +154,13 @@ async function loadPublicGamesForField(client: SupabaseLike, fieldId?: string | 
     ...game,
     registered_count: registeredCountByGame.get(String(game.id)) || 0,
   }));
+}
+
+
+function publicFieldView(field: any) {
+  if (!field || typeof field !== "object") return field;
+  const { ownerEmail, ownerUserId, organizerKey, ...publicField } = field;
+  return publicField;
 }
 
 function normalizeEmail(value: unknown) {
@@ -368,8 +375,8 @@ export async function GET(request: Request) {
 
       return NextResponse.json(
         includeGames
-          ? { ok: true, field, games, images, otherFields, organizerFields: uniqueOrganizerFields }
-          : { ok: true, field, otherFields, organizerFields: uniqueOrganizerFields },
+          ? { ok: true, field: publicFieldView(field), games, images, otherFields: otherFields.map(publicFieldView), organizerFields: uniqueOrganizerFields.map(publicFieldView) }
+          : { ok: true, field: publicFieldView(field), otherFields: otherFields.map(publicFieldView), organizerFields: uniqueOrganizerFields.map(publicFieldView) },
         { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
       );
     }
@@ -395,7 +402,7 @@ export async function GET(request: Request) {
             const images = includeGames ? await loadGallery(client, field.id) : undefined;
 
 return NextResponse.json(
-        includeGames ? { ok: true, field, games, images } : { ok: true, field },
+        includeGames ? { ok: true, field: publicFieldView(field), games, images } : { ok: true, field: publicFieldView(field) },
         { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
       );
     }
@@ -423,7 +430,7 @@ return NextResponse.json(
     });
 
     return NextResponse.json(
-      { ok: true, fields: profileFields },
+      { ok: true, fields: profileFields.map(publicFieldView) },
       { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
     );
   } catch (error) {

@@ -581,9 +581,13 @@ async function sendDecisionEmail({
   status: RequestStatus;
 }) {
   try {
+    const token = (await supabase.auth.getSession()).data.session?.access_token || "";
     const response = await fetch("/api/email/field-request-decision", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ email, fieldName, status }),
     });
 

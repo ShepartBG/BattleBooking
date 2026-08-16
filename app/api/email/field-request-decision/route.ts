@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fieldRequestDecisionEmail } from "@/lib/email/fieldRequestEmails";
 import { sendBattleBookingEmail } from "@/lib/email/emailSender";
 import type { FieldRequestStatus } from "@/lib/fieldRequests";
+import { getAuthenticatedUser } from "@/lib/server/authenticatedUser";
 
 const allowedStatuses: FieldRequestStatus[] = [
   "payment_pending",
@@ -12,6 +13,13 @@ const allowedStatuses: FieldRequestStatus[] = [
 
 export async function POST(request: Request) {
   try {
+    const auth = await getAuthenticatedUser(request);
+    if (auth.error || !auth.user || !auth.admin) {
+      return NextResponse.json({ ok: false, message: "Невалидна сесия." }, { status: 401 });
+    }
+    if (!auth.isOwner) {
+      return NextResponse.json({ ok: false, message: "Само owner може да изпраща такива известия." }, { status: 403 });
+    }
     const body = await request.json();
     const email = String(body.email || "").trim().toLowerCase();
     const fieldName = String(body.fieldName || "").trim();

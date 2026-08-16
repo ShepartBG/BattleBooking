@@ -27,7 +27,7 @@ export async function GET() {
       );
     }
 
-    const games = (data || []).filter(isGameStillPublic);
+    const games = (data || []).filter((game: any) => isGameStillPublic(game));
     const gameIds = games.map((game: any) => String(game.id)).filter(Boolean);
 
     const [fieldProfiles, registrationsResult] = await Promise.all([
