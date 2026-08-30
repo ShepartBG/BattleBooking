@@ -4,7 +4,8 @@ import { DEFAULT_FIELD_SETTINGS } from "@/lib/fieldConfig";
 import { loadPublicFieldProfileById } from "@/lib/server/publicFieldProfile";
 import { closeExpiredGames } from "@/lib/gameVisibility";
 
-export const revalidate = 5;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(
   _request: Request,
@@ -39,7 +40,7 @@ export async function GET(
     if (!game) {
       return NextResponse.json(
         { ok: true, game: null, fieldSettings: DEFAULT_FIELD_SETTINGS, stats: { totalPlayers: 0, rentalPlayers: 0 } },
-        { headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=20" } },
+        { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } },
       );
     }
 
@@ -65,7 +66,7 @@ export async function GET(
         fieldSettings,
         stats: { totalPlayers, rentalPlayers },
       },
-      { headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=20" } },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } },
     );
   } catch (error) {
     return NextResponse.json(

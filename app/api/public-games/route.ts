@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { closeExpiredGames, getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 import { loadPublicFieldProfilesByIds } from "@/lib/server/publicFieldProfile";
 
-export const revalidate = 15;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -62,7 +63,7 @@ export async function GET() {
           fieldSettings: game.field_id ? fieldProfiles[String(game.field_id)] : undefined,
         })),
       },
-      { headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60" } },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } },
     );
   } catch (error) {
     return NextResponse.json(

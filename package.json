@@ -9,7 +9,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:browser": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=chromium",
+    "test:browser:headed": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=chromium --headed",
+    "test:browser:mobile": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=mobile",
+    "test:browser:full": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test tests/full-flow.spec.ts --project=chromium",
+    "test:browser:report": "playwright show-report"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.108.2",
@@ -27,6 +32,7 @@
     "eslint": "9.39.1",
     "eslint-config-next": "15.5.20",
     "tailwindcss": "4.1.17",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@playwright/test": "latest"
   }
 }

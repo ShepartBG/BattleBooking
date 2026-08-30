@@ -28,7 +28,7 @@ export default function GamesPage() {
     async function loadGames() {
       setLoading(true);
 
-      const gamesResponse = await fetch("/api/public-games").catch(() => null);
+      const gamesResponse = await fetch("/api/public-games", { cache: "no-store" }).catch(() => null);
 
       let nextGames: Game[] = [];
 

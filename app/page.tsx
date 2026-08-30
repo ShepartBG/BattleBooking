@@ -50,8 +50,8 @@ export default function HomePage() {
       setLoading(true);
 
       const [gamesResponse, fieldsResponse] = await Promise.all([
-        fetch("/api/public-games"),
-        fetch("/api/public-fields"),
+        fetch("/api/public-games", { cache: "no-store" }),
+        fetch("/api/public-fields", { cache: "no-store" }),
       ]);
 
       const [gamesResult, fieldsResult] = await Promise.all([

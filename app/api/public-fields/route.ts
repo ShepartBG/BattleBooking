@@ -6,7 +6,8 @@ import type { FieldSettingsRow } from "@/lib/fieldSettings";
 import { resolveRealFieldId } from "@/lib/fieldIdentity";
 import { closeExpiredGames, getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PublicFieldRow = FieldSettingsRow & {
   id: string;
@@ -377,7 +378,7 @@ export async function GET(request: Request) {
         includeGames
           ? { ok: true, field: publicFieldView(field), games, images, otherFields: otherFields.map(publicFieldView), organizerFields: uniqueOrganizerFields.map(publicFieldView) }
           : { ok: true, field: publicFieldView(field), otherFields: otherFields.map(publicFieldView), organizerFields: uniqueOrganizerFields.map(publicFieldView) },
-        { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
+        { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } },
       );
     }
 
@@ -403,7 +404,7 @@ export async function GET(request: Request) {
 
 return NextResponse.json(
         includeGames ? { ok: true, field: publicFieldView(field), games, images } : { ok: true, field: publicFieldView(field) },
-        { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
+        { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } },
       );
     }
 
@@ -431,7 +432,7 @@ return NextResponse.json(
 
     return NextResponse.json(
       { ok: true, fields: profileFields.map(publicFieldView) },
-      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } },
     );
   } catch (error) {
     return NextResponse.json(
