@@ -399,7 +399,10 @@ test("разширено покритие на платформата", async ({
     await page.goto(`/field/${data.slug}`);
     await settle(page);
     await expect(page.locator("body")).toContainText(data.gameTitle, { timeout: 30_000 });
-    await expect(page.locator(`img[src*="/fields/${created.fieldId}/gallery/"]`).first()).toBeVisible();
+    // Gallery images go through the image optimizer (/_next/image?url=<encoded storage URL>)
+    const galleryImg = page.locator(`img[src*="${encodeURIComponent(`/fields/${created.fieldId}/gallery/`)}"]`).first();
+    await expect(galleryImg).toBeVisible();
+    await expect.poll(() => galleryImg.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
     await context.close();
   });
 

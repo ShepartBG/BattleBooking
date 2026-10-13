@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/imageUrl";
 import Link from "next/link";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 
@@ -40,7 +41,7 @@ export default function FieldCard({
         className="relative h-28 bg-[radial-gradient(circle_at_top,rgba(149,201,0,0.16),transparent_48%),rgba(255,255,255,0.03)] sm:h-32"
         style={
           hasCustomImage
-            ? { backgroundImage: `linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.74)), url('${image}')` }
+            ? { backgroundImage: `linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.74)), url('${optimizedImage(image, 420, 70)}')` }
             : undefined
         }
       >

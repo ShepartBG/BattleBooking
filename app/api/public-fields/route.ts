@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createFieldSlug, rowToFieldSettings } from "@/lib/fieldSettings";
+import { withPublicMedia } from "@/lib/server/publicMedia";
 import type { FieldSettingsRow } from "@/lib/fieldSettings";
 import { resolveRealFieldId } from "@/lib/fieldIdentity";
 import { closeExpiredGames, getPublicGamesMinDate, isGameStillPublic } from "@/lib/gameVisibility";
@@ -49,7 +50,8 @@ async function toPublicField(
   row: PublicFieldRow,
   canResolveFieldId: boolean,
 ) {
-  const settings = rowToFieldSettings(row);
+  // Rows from field_requests carry `email`; rows from fields do not.
+  const settings = withPublicMedia(rowToFieldSettings(row), "email" in row ? "r" : "f", row.id);
   const realFieldId = canResolveFieldId ? await resolveRealFieldId(supabaseClient, row) : row.field_id || row.id;
 
   return {

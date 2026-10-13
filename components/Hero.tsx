@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/imageUrl";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
 import MissionCountdown from "@/components/public/MissionCountdown";
@@ -50,7 +51,7 @@ export default function Hero({
     <section className="group relative overflow-hidden rounded-[1.75rem] border border-lime-400/20 bg-black/70 p-4 sm:rounded-[2.4rem] shadow-[0_0_60px_rgba(0,0,0,0.55)] backdrop-blur-xl md:p-6">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-55 transition duration-700 group-hover:scale-[1.02]"
-        style={{ backgroundImage: `url('${backgroundUrl}')` }}
+        style={{ backgroundImage: `url('${optimizedImage(backgroundUrl, 1100, 70)}')` }}
       />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_26%,rgba(132,204,22,0.22),transparent_32%),linear-gradient(115deg,rgba(0,0,0,0.92),rgba(0,0,0,0.64),rgba(0,0,0,0.88))]" />
       <div className="pointer-events-none absolute -right-20 -top-28 h-64 w-64 rounded-full bg-lime-400/10 blur-3xl transition duration-700 group-hover:bg-lime-400/16" />

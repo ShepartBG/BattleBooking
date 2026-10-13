@@ -1,5 +1,6 @@
 import { DEFAULT_FIELD_SETTINGS, type FieldSettings } from "@/lib/fieldConfig";
 import { rowToFieldSettings, type FieldSettingsRow } from "@/lib/fieldSettings";
+import { withPublicMedia } from "@/lib/server/publicMedia";
 
 type PublicFieldRow = FieldSettingsRow & {
   id?: string | null;
@@ -38,7 +39,7 @@ export async function loadPublicFieldProfileById(
     .maybeSingle();
 
   if (!requestResult.error && requestResult.data) {
-    return rowToFieldSettings(requestResult.data as PublicFieldRow);
+    return withPublicMedia(rowToFieldSettings(requestResult.data as PublicFieldRow), "r", requestResult.data.id);
   }
 
   // Every additional field keeps its complete profile in fields.
@@ -52,7 +53,7 @@ export async function loadPublicFieldProfileById(
     .maybeSingle();
 
   if (!fieldResult.error && fieldResult.data) {
-    return rowToFieldSettings(normalizeFieldsRow(fieldResult.data as PublicFieldRow));
+    return withPublicMedia(rowToFieldSettings(normalizeFieldsRow(fieldResult.data as PublicFieldRow)), "f", fieldResult.data.id);
   }
 
   // Compatibility for very old data where field_requests.id was saved in games.field_id.
@@ -67,7 +68,7 @@ export async function loadPublicFieldProfileById(
     .maybeSingle();
 
   if (!legacyRequestResult.error && legacyRequestResult.data) {
-    return rowToFieldSettings(legacyRequestResult.data as PublicFieldRow);
+    return withPublicMedia(rowToFieldSettings(legacyRequestResult.data as PublicFieldRow), "r", legacyRequestResult.data.id);
   }
 
   return DEFAULT_FIELD_SETTINGS;
@@ -113,20 +114,20 @@ export async function loadPublicFieldProfilesByIds(
 
   for (const row of requestResult.data || []) {
     const key = String(row.field_id || "").trim();
-    if (key && ids.includes(key)) profiles[key] = rowToFieldSettings(row as PublicFieldRow);
+    if (key && ids.includes(key)) profiles[key] = withPublicMedia(rowToFieldSettings(row as PublicFieldRow), "r", row.id);
   }
 
   for (const row of fieldResult.data || []) {
     const key = String(row.id || "").trim();
     if (key && ids.includes(key) && !profiles[key]) {
-      profiles[key] = rowToFieldSettings(normalizeFieldsRow(row as PublicFieldRow));
+      profiles[key] = withPublicMedia(rowToFieldSettings(normalizeFieldsRow(row as PublicFieldRow)), "f", row.id);
     }
   }
 
   for (const row of legacyRequestResult.data || []) {
     const key = String(row.id || "").trim();
     if (key && ids.includes(key) && !profiles[key]) {
-      profiles[key] = rowToFieldSettings(row as PublicFieldRow);
+      profiles[key] = withPublicMedia(rowToFieldSettings(row as PublicFieldRow), "r", row.id);
     }
   }
 

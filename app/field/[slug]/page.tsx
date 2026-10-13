@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/imageUrl";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import PublicShell from "@/components/public/PublicShell";
@@ -95,7 +96,7 @@ export default function FieldPage() {
           <div
             className="relative min-h-[360px] bg-cover bg-center"
             style={{
-              backgroundImage: `linear-gradient(90deg,rgba(0,0,0,.88),rgba(0,0,0,.45),rgba(0,0,0,.78)), url('${fieldSettings.backgroundUrl}')`,
+              backgroundImage: `linear-gradient(90deg,rgba(0,0,0,.88),rgba(0,0,0,.45),rgba(0,0,0,.78)), url('${optimizedImage(fieldSettings.backgroundUrl, 1100, 70)}')`,
               backgroundPosition: `${(fieldSettings as any).backgroundX ?? 50}% ${(fieldSettings as any).backgroundY ?? 50}%`,
             }}
           >
@@ -152,7 +153,7 @@ export default function FieldPage() {
                     <div
                       className="relative h-44 bg-cover"
                       style={{
-                        backgroundImage: `linear-gradient(rgba(0,0,0,.12),rgba(0,0,0,.86)),url('${field.backgroundUrl || "/battlebooking-bg.jpg"}')`,
+                        backgroundImage: `linear-gradient(rgba(0,0,0,.12),rgba(0,0,0,.86)),url('${optimizedImage(field.backgroundUrl || "/battlebooking-bg.jpg", 420, 70)}')`,
                         backgroundPosition: `${field.backgroundX ?? 50}% ${field.backgroundY ?? 50}%`,
                       }}
                     >
@@ -190,7 +191,7 @@ export default function FieldPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {images.map((image) => (
                 <a key={image.id} href={image.image_url} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-                  <img src={image.image_url} alt={image.caption || `Снимка от ${fieldSettings.name}`} className="h-64 w-full object-cover transition duration-300 group-hover:scale-105" style={{ objectPosition: `${image.position_x ?? 50}% ${image.position_y ?? 50}%` }} />
+                  <img src={optimizedImage(image.image_url, 400)} loading="lazy" decoding="async" alt={image.caption || `Снимка от ${fieldSettings.name}`} className="h-64 w-full object-cover transition duration-300 group-hover:scale-105" style={{ objectPosition: `${image.position_x ?? 50}% ${image.position_y ?? 50}%` }} />
                 </a>
               ))}
             </div>

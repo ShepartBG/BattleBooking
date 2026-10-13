@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/imageUrl";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
 import GameCard from "@/components/public/GameCard";
@@ -317,7 +318,8 @@ function MarketingImage({
 
         <div className={`${reverse ? "lg:col-start-1" : ""} overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] sm:rounded-[2rem]`}>
           <img
-            src={src}
+            src={optimizedImage(src, 700)}
+            decoding="async"
             alt={alt}
             loading="lazy"
             className="h-auto max-h-[360px] w-full object-contain sm:max-h-[420px] lg:max-h-[440px]"

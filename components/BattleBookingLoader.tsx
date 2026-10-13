@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/imageUrl";
 function GrenadeIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true" className={className}>
@@ -25,7 +26,7 @@ export default function BattleBookingLoader({
       <div className="bb-loader-orbit" aria-hidden="true">
         <div className="bb-loader-logo-wrap">
           <img
-            src="/loading-logo-small.png"
+            src={optimizedImage("/loading-logo-small.png", 112)}
             alt=""
             width={112}
             height={112}

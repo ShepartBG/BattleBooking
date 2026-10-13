@@ -769,3 +769,18 @@
     transition: none;
   }
 }
+
+@media (max-width: 480px) {
+  .bb-mission-banner {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-align: center;
+  }
+
+  .bb-ticket-code {
+    font-size: 2.4rem;
+    letter-spacing: 0.06em;
+  }
+}

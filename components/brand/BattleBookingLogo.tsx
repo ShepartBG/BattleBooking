@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/imageUrl";
 import Link from "next/link";
 
 type Props = {
@@ -29,7 +30,7 @@ export default function BattleBookingLogo({
       aria-label="BattleBooking начало"
     >
       <img
-        src="/battlebooking-mark-transparent.png"
+        src={optimizedImage("/battlebooking-mark-transparent.png", isHero ? 240 : 56)}
         alt="BattleBooking"
         className={`${imageSize} shrink-0 object-contain drop-shadow-[0_0_24px_rgba(183,239,22,0.34)] transition duration-300 group-hover:scale-[1.05]`}
       />

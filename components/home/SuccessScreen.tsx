@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
+import { isUrlLocation, normalizeLocationUrl } from "@/utils/location";
 
 type Props = {
   code: string;
@@ -100,10 +101,11 @@ export default function SuccessScreen({
             <div className="mt-5 grid gap-2 text-left text-sm">
               {gameTitle && <TicketRow label="Мисия" value={gameTitle} />}
               {(date || time) && <TicketRow label="Начало" value={[date, time].filter(Boolean).join(" · ")} />}
-              {location && <TicketRow label="Позиция" value={location} />}
               {participation && <TicketRow label="Екипировка" value={participation} />}
             </div>
           )}
+
+          {location && <LocationButton location={location} />}
 
           <div className="bb-ticket-perforation" aria-hidden="true" />
 
@@ -130,8 +132,36 @@ export default function SuccessScreen({
 function TicketRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-white/10 pb-2">
-      <span className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">{label}</span>
-      <span className="text-right font-black text-white">{value}</span>
+      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">{label}</span>
+      <span className="min-w-0 text-right font-black leading-snug text-white [overflow-wrap:anywhere]">{value}</span>
+    </div>
+  );
+}
+
+function mapsUrl(location: string) {
+  return isUrlLocation(location)
+    ? normalizeLocationUrl(location)
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+}
+
+function LocationButton({ location }: { location: string }) {
+  const isUrl = isUrlLocation(location);
+  return (
+    <div className="mt-4 text-left">
+      {!isUrl && (
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">
+          Позиция
+          <span className="mt-1 block text-sm normal-case tracking-normal text-white [overflow-wrap:anywhere]">{location}</span>
+        </p>
+      )}
+      <a
+        href={mapsUrl(location)}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-lime-400/40 bg-lime-400/10 px-4 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-lime-200 transition hover:bg-lime-400 hover:text-black"
+      >
+        📍 Отвори локацията в Google Maps
+      </a>
     </div>
   );
 }

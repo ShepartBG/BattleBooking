@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/imageUrl";
 type Props = {
   src?: string;
   alt?: string;
@@ -29,6 +30,7 @@ export default function FieldLogoFrame({
   const safeScale = Number.isFinite(scale) ? Math.min(Math.max(scale, 0.55), 2.6) : 1;
   const safeX = Number.isFinite(x) ? Math.min(Math.max(x, -60), 60) : 0;
   const safeY = Number.isFinite(y) ? Math.min(Math.max(y, -60), 60) : 0;
+  const pixelSize = { sm: 48, md: 80, lg: 144, xl: 240 }[size] * Math.max(1, safeScale);
 
   return (
     <div
@@ -37,8 +39,10 @@ export default function FieldLogoFrame({
       <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_top,rgba(149,201,0,.14),transparent_58%)]" />
       <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/10" />
       <img
-        src={src}
+        src={optimizedImage(src, pixelSize)}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className={`relative z-10 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain"} drop-shadow-[0_0_14px_rgba(0,0,0,.45)]`}
         style={{
           transform: `translate(${safeX}%, ${safeY}%) scale(${safeScale})`,

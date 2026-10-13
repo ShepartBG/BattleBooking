@@ -5,9 +5,10 @@ type Props = {
 };
 
 const ITEMS = [
-  { key: "helmet", label: "Каска", note: "Тактическа FAST", icon: HelmetIcon },
-  { key: "mask", label: "Маска", note: "Защита за лице и очи", icon: MaskIcon },
+  { key: "mask", label: "Маска", note: "Защита за лицето", icon: MaskIcon },
+  { key: "goggles", label: "Очила", note: "Балистична защита", icon: GogglesIcon },
   { key: "replica", label: "Реплика", note: "Заредена и тествана", icon: ReplicaIcon },
+  { key: "vest", label: "Жилетка", note: "Тактическа с джобове", icon: VestIcon },
 ] as const;
 
 /** Rental kit presented as an armory rack; each item spins in 3D on hover. */
@@ -34,7 +35,7 @@ export default function RentalArmory({ maxRentalSets, rentalPlayers, rentalPrice
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {ITEMS.map(({ key, label, note, icon: Icon }) => (
           <div key={key} className="bb-armory-slot" tabIndex={0}>
             <div className="bb-armory-stage">
@@ -53,26 +54,12 @@ export default function RentalArmory({ maxRentalSets, rentalPlayers, rentalPrice
   );
 }
 
-function HelmetIcon() {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round">
-      <path d="M8 38c0-15 10.5-26 24-26s24 11 24 26v4H8z" fill="currentColor" fillOpacity=".14" />
-      <path d="M8 42h48M14 42v6h10l4-6M50 42v6H40" />
-      <path d="M20 22h24M17 30h30" opacity=".7" />
-      <rect x="44" y="30" width="9" height="7" rx="1.5" />
-      <path d="M30 12v-2h4v2" />
-    </svg>
-  );
-}
-
 function MaskIcon() {
   return (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round">
-      <path d="M8 22c8-6 40-6 48 0v8c0 4-3 6-7 6H15c-4 0-7-2-7-6z" fill="currentColor" fillOpacity=".14" />
-      <path d="M16 23h12v8H16zM36 23h12v8H36z" fill="currentColor" fillOpacity=".3" />
-      <path d="M14 36c2 10 9 16 18 16s16-6 18-16" />
-      <path d="M24 42h16M24 47h16M28 38v12M36 38v12" opacity=".7" />
-      <path d="M8 26H3M56 26h5" />
+      <path d="M10 24c6-4 38-4 44 0l-2 14c-2 12-10 18-20 18S14 50 12 38z" fill="currentColor" fillOpacity=".14" />
+      <path d="M18 30h28M17 37h30M20 44h24M24 26v26M32 25v29M40 26v26" opacity=".7" />
+      <path d="M10 26L3 22M54 26l7-4M12 36l-8 2M52 36l8 2" />
     </svg>
   );
 }
@@ -84,6 +71,29 @@ function ReplicaIcon() {
       <path d="M26 34l-2 14h7l3-14" fill="currentColor" fillOpacity=".2" />
       <path d="M33 34l3 9h5l-2-9" />
       <path d="M56 27h6M12 22h18v4M18 22v-3h8v3" />
+    </svg>
+  );
+}
+
+function GogglesIcon() {
+  return (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M6 26c0-4 3-6 7-6h38c4 0 7 2 7 6v8c0 5-3 8-8 8h-8c-3 0-5-2-6-5l-1-3c-1-2-3-2-4 0l-1 3c-1 3-3 5-6 5h-8c-5 0-8-3-8-8z" fill="currentColor" fillOpacity=".14" />
+      <path d="M12 26h14v10H12zM38 26h14v10H38z" fill="currentColor" fillOpacity=".32" />
+      <path d="M6 29H2M58 29h4" />
+      <path d="M15 28l5 5M41 28l5 5" opacity=".6" />
+    </svg>
+  );
+}
+
+function VestIcon() {
+  return (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M22 8l-10 6v42h40V14L42 8c-2 6-6 9-10 9s-8-3-10-9z" fill="currentColor" fillOpacity=".14" />
+      <path d="M32 17v39" opacity=".6" />
+      <rect x="15" y="30" width="13" height="10" rx="1.5" fill="currentColor" fillOpacity=".3" />
+      <rect x="36" y="30" width="13" height="10" rx="1.5" fill="currentColor" fillOpacity=".3" />
+      <path d="M15 45h13M36 45h13M15 50h13M36 50h13" opacity=".7" />
     </svg>
   );
 }

@@ -1,9 +1,10 @@
+import { optimizedImage } from "@/lib/imageUrl";
 export default function NoActiveGame() {
   return (
     <main className="bb-page-bg flex min-h-screen items-center justify-center p-6 text-white">
       <div className="w-full max-w-md rounded-[2rem] border border-red-500/25 bg-black/75 p-8 text-center backdrop-blur-xl">
         <img
-          src="/battlebooking-mark.png"
+          src={optimizedImage("/battlebooking-mark.png", 64)}
           alt="BattleBooking"
           className="mx-auto mb-4 h-16 w-16 object-contain opacity-80"
         />

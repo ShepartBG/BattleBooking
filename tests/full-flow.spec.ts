@@ -22,8 +22,10 @@ test("create a test game through UI, verify it, then delete it", async ({ page, 
     has: page.locator("option", { hasText: "Избери игрище" }),
   });
   await expect(fieldSelect).toBeVisible();
-  const optionCount = await fieldSelect.locator("option").count();
-  expect(optionCount, "Няма налично игрище в admin профила.").toBeGreaterThan(1);
+  // Fields load asynchronously after the select is rendered.
+  await expect
+    .poll(() => fieldSelect.locator("option").count(), { message: "Няма налично игрище в admin профила.", timeout: 15_000 })
+    .toBeGreaterThan(1);
 
   if (!(await fieldSelect.inputValue())) {
     const firstValue = await fieldSelect.locator("option").nth(1).getAttribute("value");
