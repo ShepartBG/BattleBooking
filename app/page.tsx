@@ -1,13 +1,13 @@
-"use client";
-
-import BattleBookingLoader from "@/components/BattleBookingLoader";
-
-import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import FieldCard from "@/components/public/FieldCard";
 import GameCard from "@/components/public/GameCard";
+import RegistrationCounter from "@/components/public/RegistrationCounter";
 import BattleBookingLogo from "@/components/brand/BattleBookingLogo";
 import { FieldSettings } from "@/lib/fieldConfig";
+import { loadPublicFields, loadPublicGames } from "@/lib/server/publicPageData";
+
+// Rendered on the server on every request so content is in the HTML (fast first paint, SEO).
+export const dynamic = "force-dynamic";
 
 type Game = {
   id: string;
@@ -21,6 +21,7 @@ type Game = {
   field_id: string | null;
   fieldSettings?: FieldSettings;
   registered_count?: number;
+  rental_count?: number;
 };
 
 type PublicField = FieldSettings & {
@@ -38,49 +39,17 @@ type PublicField = FieldSettings & {
   logoY: number;
 };
 
-export default function HomePage() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [fields, setFields] = useState<PublicField[]>([]);
-  const [totalGames, setTotalGames] = useState(0);
-  const [totalFields, setTotalFields] = useState(0);
-  const [loading, setLoading] = useState(true);
+export default async function HomePage() {
+  const [publicGames, allFields] = await Promise.all([
+    loadPublicGames<Game>(),
+    loadPublicFields<PublicField>(),
+  ]);
+  const publicFields = allFields.filter((field) => field?.id);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-
-      const [gamesResponse, fieldsResponse] = await Promise.all([
-        fetch("/api/public-games", { cache: "no-store" }),
-        fetch("/api/public-fields", { cache: "no-store" }),
-      ]);
-
-      const [gamesResult, fieldsResult] = await Promise.all([
-        gamesResponse.json().catch(() => null),
-        fieldsResponse.json().catch(() => null),
-      ]);
-
-      const publicFields = ((fieldsResult?.fields || []) as PublicField[]).filter((field) => field?.id);
-      const publicGames = ((gamesResult?.games || []) as Game[]);
-
-      setTotalGames(publicGames.length);
-      setTotalFields(publicFields.length);
-      setGames(publicGames.slice(0, 3));
-      setFields(publicFields.slice(0, 3));
-      setLoading(false);
-    }
-
-    loadData();
-  }, []);
-
-  if (loading) {
-    return (
-      <BattleBookingLoader
-        variant="fullscreen"
-        title="ЗАРЕЖДА СЕ НАЧАЛНАТА СТРАНИЦА..."
-        subtitle="Подготвяме активните игри и игрища"
-      />
-    );
-  }
+  const totalGames = publicGames.length;
+  const totalFields = publicFields.length;
+  const games = publicGames.slice(0, 3);
+  const fields = publicFields.slice(0, 3);
 
   return (
     <PublicShell>
@@ -120,6 +89,8 @@ export default function HomePage() {
             <HeroStat value={String(totalFields)} label="активни игрища" />
             <HeroStat value="Warzone" label="първо игрище" />
           </div>
+
+          <RegistrationCounter className="mt-4 max-w-2xl" />
         </div>
 
         <div className="hidden rounded-[1.75rem] border border-[#95c900]/25 bg-black/65 p-4 backdrop-blur-xl shadow-[0_0_90px_rgba(0,0,0,0.58)] sm:rounded-[2.4rem] sm:p-6 lg:block">
@@ -233,9 +204,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          {loading ? (
-            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИЩАТА..." subtitle="Подготвяме активните терени" /></div>
-          ) : fields.length > 0 ? (
+          {fields.length > 0 ? (
             fields.map((field) => (
               <FieldCard
                 key={field.id}
@@ -277,9 +246,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          {loading ? (
-            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИТЕ..." subtitle="Проверяваме активните записвания" /></div>
-          ) : games.length > 0 ? (
+          {games.length > 0 ? (
             games.map((game) => {
               const fieldSettings = game.fieldSettings;
 
@@ -301,6 +268,7 @@ export default function HomePage() {
                 logoX={fieldSettings?.logoX}
                 logoY={fieldSettings?.logoY}
                 registeredCount={game.registered_count || 0}
+                rentalCount={game.rental_count || 0}
               />
               );
             })

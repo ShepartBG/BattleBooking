@@ -14,7 +14,12 @@
     "test:browser:headed": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=chromium --headed",
     "test:browser:mobile": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=mobile",
     "test:browser:full": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test tests/full-flow.spec.ts --project=chromium",
-    "test:browser:report": "playwright show-report"
+    "test:browser:report": "playwright show-report",
+    "test:browser:owner": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=owner",
+    "test:browser:lifecycle": "node --env-file=.env.local --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=lifecycle",
+    "test:browser:extended": "node --env-file=.env.local --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=extended",
+    "test:browser:cross": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=firefox --project=webkit --project=webkit-iphone",
+    "test:browser:all": "node --env-file=.env.test.local ./node_modules/@playwright/test/cli.js test --project=chromium --project=owner"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.108.2",

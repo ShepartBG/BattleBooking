@@ -1,0 +1,460 @@
+/* =====================================================================
+   BattleBooking FX layer — purely visual, no layout/structure changes.
+   Driven by components/fx/BattleFX.tsx. Disabled for reduced motion.
+   ===================================================================== */
+
+.bb-fx-root {
+  display: contents;
+}
+
+.bb-fx-embers,
+.bb-fx-radar,
+.bb-fx-scan,
+.bb-fx-grain,
+.bb-fx-vignette,
+.bb-fx-bursts {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bb-fx-embers {
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+}
+
+/* rotating radar sweep in the corner */
+.bb-fx-radar {
+  z-index: 1;
+  inset: auto;
+  top: -38vmax;
+  right: -38vmax;
+  width: 76vmax;
+  height: 76vmax;
+  border-radius: 999px;
+  background:
+    conic-gradient(from 0deg, rgba(183, 239, 22, 0.13), rgba(183, 239, 22, 0.02) 16%, transparent 24%),
+    repeating-radial-gradient(circle, transparent 0 11.5%, rgba(183, 239, 22, 0.07) 11.5% 11.8%);
+  -webkit-mask-image: radial-gradient(circle, #000 0 62%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 0 62%, transparent 70%);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  animation: bb-fx-spin 9s linear infinite;
+}
+
+/* tactical grid + scanlines + travelling scan band */
+.bb-fx-scan {
+  z-index: 3;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(183, 239, 22, 0.045) 48%, rgba(183, 239, 22, 0.09) 50%, transparent 52%) 0 0 / 100% 220vh no-repeat,
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.13) 0 1px, transparent 1px 4px),
+    linear-gradient(rgba(149, 201, 0, 0.035) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(90deg, rgba(149, 201, 0, 0.035) 1px, transparent 1px) 0 0 / 56px 56px;
+  animation: bb-fx-scanband 7.5s linear infinite;
+}
+
+.bb-fx-grain {
+  z-index: 3;
+  inset: -50%;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: bb-fx-grain 0.9s steps(4) infinite;
+}
+
+.bb-fx-vignette {
+  z-index: 1;
+  background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* ---------- cursor: crosshair + trailing reticle ---------- */
+html[data-fx-cursor="on"],
+html[data-fx-cursor="on"] body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke-linecap='square'%3E%3Cpath d='M16 3v8M16 21v8M3 16h8M21 16h8' stroke='%23000' stroke-width='4'/%3E%3Cpath d='M16 3v8M16 21v8M3 16h8M21 16h8' stroke='%23b7ef16' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='1.6' fill='%23b7ef16' stroke='%23000'/%3E%3C/svg%3E") 16 16, crosshair;
+}
+
+html[data-fx-cursor="on"] :is(a, button, [role="button"], label, select, summary):not(:disabled) {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23000' stroke-width='4'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff4d2e' stroke-width='2'/%3E%3Cpath d='M16 1v8M16 23v8M1 16h8M23 16h8' stroke='%23000' stroke-width='4'/%3E%3Cpath d='M16 1v8M16 23v8M1 16h8M23 16h8' stroke='%23ff4d2e' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ff4d2e'/%3E%3C/svg%3E") 16 16, pointer;
+}
+
+html[data-fx-cursor="on"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable="true"]) {
+  cursor: text;
+}
+
+html[data-fx-cursor="on"] :disabled {
+  cursor: not-allowed;
+}
+
+.bb-fx-reticle {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10050;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  display: none;
+}
+
+html[data-fx-cursor="on"] .bb-fx-reticle {
+  display: block;
+}
+
+.bb-fx-reticle > span {
+  position: absolute;
+  left: -19px;
+  top: -19px;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 239, 22, 0.55);
+  box-shadow: 0 0 14px rgba(183, 239, 22, 0.25), inset 0 0 10px rgba(183, 239, 22, 0.12);
+  background:
+    linear-gradient(#b7ef16, #b7ef16) 50% 0 / 1px 6px no-repeat,
+    linear-gradient(#b7ef16, #b7ef16) 50% 100% / 1px 6px no-repeat,
+    linear-gradient(#b7ef16, #b7ef16) 0 50% / 6px 1px no-repeat,
+    linear-gradient(#b7ef16, #b7ef16) 100% 50% / 6px 1px no-repeat;
+  transition: scale 180ms cubic-bezier(.2, .9, .2, 1.4), border-color 180ms, opacity 200ms, box-shadow 180ms;
+  animation: bb-fx-spin 6s linear infinite;
+}
+
+.bb-fx-reticle[data-lock] > span {
+  scale: 0.62;
+  border-color: rgba(255, 77, 46, 0.9);
+  box-shadow: 0 0 18px rgba(255, 77, 46, 0.45), inset 0 0 8px rgba(255, 77, 46, 0.3);
+  animation-duration: 1.4s;
+}
+
+.bb-fx-reticle[data-fire] > span {
+  scale: 1.35;
+  box-shadow: 0 0 30px rgba(255, 190, 60, 0.75);
+}
+
+.bb-fx-reticle[data-hidden] > span {
+  opacity: 0;
+}
+
+/* ---------- click muzzle flash ---------- */
+.bb-fx-bursts {
+  z-index: 10049;
+  overflow: hidden;
+}
+
+.bb-fx-burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.bb-fx-burst::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 10%, rgba(255, 214, 90, 0.85) 22%, rgba(255, 110, 30, 0.45) 45%, transparent 70%);
+  animation: bb-fx-flash 380ms ease-out forwards;
+}
+
+.bb-fx-burst::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(183, 239, 22, 0.9);
+  animation: bb-fx-ring 560ms cubic-bezier(.1, .7, .2, 1) forwards;
+}
+
+.bb-fx-burst > i {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 3px;
+  height: 9px;
+  border-radius: 2px;
+  background: linear-gradient(#fff6c8, #ffb020);
+  box-shadow: 0 0 6px rgba(255, 176, 32, 0.9);
+  transform: rotate(var(--a)) translateY(0);
+  animation: bb-fx-spark 520ms cubic-bezier(.1, .7, .3, 1) forwards;
+}
+
+.bb-fx-burst:not(.is-hot) > i {
+  background: linear-gradient(#efffc0, #95c900);
+  box-shadow: 0 0 6px rgba(149, 201, 0, 0.9);
+}
+
+/* ---------- card spotlight + HUD corner brackets ---------- */
+/* spotlight layer is background-attachment:fixed, so viewport coords from <html> line up */
+:is(main article, main aside, .bb-panel, main section > div[class*="rounded-["]):hover:not([class*="gradient"]):not([class*="bg-[radial"]):not([class*="bg-[linear"]):not([class*="bg-cover"]) {
+  background-image:
+    radial-gradient(460px circle at var(--fx-mx, -999px) var(--fx-my, -999px), rgba(183, 239, 22, 0.11), transparent 46%),
+    linear-gradient(#b7ef16, #b7ef16), linear-gradient(#b7ef16, #b7ef16),
+    linear-gradient(#b7ef16, #b7ef16), linear-gradient(#b7ef16, #b7ef16),
+    linear-gradient(#b7ef16, #b7ef16), linear-gradient(#b7ef16, #b7ef16),
+    linear-gradient(#b7ef16, #b7ef16), linear-gradient(#b7ef16, #b7ef16);
+  background-size: 100% 100%, 18px 2px, 2px 18px, 18px 2px, 2px 18px, 18px 2px, 2px 18px, 18px 2px, 2px 18px;
+  background-position:
+    0 0,
+    left 14px top 14px, left 14px top 14px,
+    right 14px top 14px, right 14px top 14px,
+    left 14px bottom 14px, left 14px bottom 14px,
+    right 14px bottom 14px, right 14px bottom 14px;
+  background-repeat: no-repeat;
+  background-attachment: fixed, scroll, scroll, scroll, scroll, scroll, scroll, scroll, scroll;
+}
+
+main article:hover {
+  box-shadow: 0 0 0 1px rgba(183, 239, 22, 0.18), 0 18px 60px rgba(0, 0, 0, 0.55), 0 0 60px rgba(149, 201, 0, 0.16);
+}
+
+/* ---------- primary buttons: shine sweep + glow ---------- */
+:is(a, button)[class*=" bg-[#95c900]"]:not([class*="gradient"]),
+:is(a, button)[class^="bg-[#95c900]"]:not([class*="gradient"]),
+:is(a, button)[class~="bg-lime-400"]:not([class*="gradient"]) {
+  background-image: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.55) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  background-repeat: no-repeat;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: background-position 650ms ease, box-shadow 220ms ease, background-color 160ms ease, scale 160ms ease, translate 160ms ease;
+  animation: bb-fx-cta-pulse 2.8s ease-in-out infinite;
+}
+
+:is(a, button)[class*=" bg-[#95c900]"]:not([class*="gradient"]):hover,
+:is(a, button)[class^="bg-[#95c900]"]:not([class*="gradient"]):hover,
+:is(a, button)[class~="bg-lime-400"]:not([class*="gradient"]):hover {
+  background-position: -30% 0;
+  box-shadow: 0 0 0 1px rgba(214, 255, 90, 0.75), 0 0 42px rgba(183, 239, 22, 0.55), 0 0 90px rgba(149, 201, 0, 0.25);
+  animation: none;
+}
+
+:is(a, button):not(:disabled):active {
+  scale: 0.985;
+}
+
+/* danger buttons glow red */
+:is(a, button)[class*="bg-red-6"]:hover,
+:is(a, button)[class*="hover:bg-red-500"]:hover {
+  box-shadow: 0 0 32px rgba(239, 68, 68, 0.45);
+}
+
+/* ---------- headings & accent text ---------- */
+main h1 {
+  text-shadow: 0 0 22px rgba(149, 201, 0, 0.18), 0 2px 0 rgba(0, 0, 0, 0.6);
+  animation: bb-fx-boot 1.1s steps(1, end) both;
+}
+
+main h1:hover {
+  animation: bb-fx-glitch 420ms steps(2, end) 1;
+}
+
+main :is(h1, h2) span[class*="text-[#b7ef16]"] {
+  background: linear-gradient(100deg, #95c900 0%, #e8ff9a 45%, #b7ef16 55%, #95c900 100%) 0 0 / 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: bb-fx-sheen 4.2s linear infinite;
+  filter: drop-shadow(0 0 14px rgba(183, 239, 22, 0.35));
+}
+
+main p[class*="tracking-[0.3"][class*="text-[#b7ef16]"],
+main p[class*="tracking-[0.3"][class*="text-lime-300"] {
+  text-shadow: 0 0 12px rgba(183, 239, 22, 0.45);
+}
+
+/* status pills ("ОТВОРЕНА" / "ОТЛОЖЕНА") + live dots */
+span[class*="rounded-full"][class*="bg-[#95c900]/10"] {
+  animation: bb-fx-pill 2.2s ease-in-out infinite;
+}
+
+span[class*="rounded-full"][class*="bg-red-500/15"] {
+  animation: bb-fx-pill-red 1.6s ease-in-out infinite;
+}
+
+span[class~="h-2"][class~="w-2"][class~="rounded-full"] {
+  animation: bb-fx-ping 1.6s ease-out infinite;
+}
+
+/* ---------- inputs: locked-on focus ---------- */
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]), textarea, select):focus {
+  border-color: rgba(183, 239, 22, 0.85) !important;
+  box-shadow: 0 0 0 2px rgba(183, 239, 22, 0.16), 0 0 26px rgba(149, 201, 0, 0.2) !important;
+}
+
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]), textarea):focus {
+  background-image: linear-gradient(90deg, transparent, rgba(183, 239, 22, 0.09), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: bb-fx-input-scan 1.6s ease-in-out infinite;
+}
+
+:focus-visible {
+  outline: 2px solid #b7ef16;
+  outline-offset: 2px;
+}
+
+/* ---------- modals: tactical deploy ---------- */
+div[class~="fixed"][class~="inset-0"] {
+  animation: bb-fx-fade 220ms ease-out backwards;
+}
+
+div[class~="fixed"][class~="inset-0"] > :first-child {
+  animation: bb-fx-deploy 360ms cubic-bezier(.16, 1.1, .3, 1) backwards;
+}
+
+/* ---------- loader radar ping ---------- */
+.bb-loader-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 999px;
+  border: 2px solid rgba(183, 239, 22, 0.55);
+  animation: bb-fx-loader-ping 1.8s ease-out infinite;
+}
+
+/* ---------- images inside cards ---------- */
+main :is(article, section) div[class*="overflow-hidden"] > img {
+  transition: transform 700ms cubic-bezier(.2, .8, .2, 1), filter 500ms ease;
+}
+
+main :is(article, section):hover div[class*="overflow-hidden"] > img {
+  transform: scale(1.035);
+  filter: saturate(1.15) contrast(1.05);
+}
+
+/* ---------- global scrollbar ---------- */
+html {
+  scrollbar-color: rgba(149, 201, 0, 0.55) #050805;
+}
+
+/* ---------- keyframes ---------- */
+@keyframes bb-fx-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bb-fx-scanband {
+  from { background-position: 0 -120vh, 0 0, 0 0, 0 0; }
+  to { background-position: 0 100vh, 0 0, 0 0, 0 0; }
+}
+
+@keyframes bb-fx-grain {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-6%, 4%); }
+  50% { transform: translate(5%, -7%); }
+  75% { transform: translate(-3%, 8%); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes bb-fx-flash {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes bb-fx-ring {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(6); opacity: 0; border-width: 1px; }
+}
+
+@keyframes bb-fx-spark {
+  0% { transform: rotate(var(--a)) translateY(0) scaleY(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scaleY(0.3); opacity: 0; }
+}
+
+@keyframes bb-fx-cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(183, 239, 22, 0.35), 0 0 22px rgba(149, 201, 0, 0.22); }
+  50% { box-shadow: 0 0 0 1px rgba(214, 255, 90, 0.6), 0 0 38px rgba(149, 201, 0, 0.42); }
+}
+
+@keyframes bb-fx-boot {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  12% { opacity: 0.2; }
+  18% { opacity: 1; text-shadow: -3px 0 rgba(255, 60, 60, 0.7), 3px 0 rgba(0, 255, 200, 0.6); }
+  24% { opacity: 0.6; }
+  30%, 100% { opacity: 1; }
+}
+
+@keyframes bb-fx-glitch {
+  0% { text-shadow: -3px 0 rgba(255, 60, 60, 0.75), 3px 0 rgba(0, 255, 200, 0.65); translate: -1px 0; }
+  50% { text-shadow: 3px 0 rgba(255, 60, 60, 0.75), -3px 0 rgba(0, 255, 200, 0.65); translate: 2px 0; }
+  100% { text-shadow: 0 0 22px rgba(149, 201, 0, 0.18); translate: 0 0; }
+}
+
+@keyframes bb-fx-sheen {
+  to { background-position: -220% 0; }
+}
+
+@keyframes bb-fx-pill {
+  0%, 100% { box-shadow: 0 0 0 rgba(183, 239, 22, 0); }
+  50% { box-shadow: 0 0 18px rgba(183, 239, 22, 0.45); }
+}
+
+@keyframes bb-fx-pill-red {
+  0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+}
+
+@keyframes bb-fx-ping {
+  0% { box-shadow: 0 0 0 0 rgba(183, 239, 22, 0.75); }
+  100% { box-shadow: 0 0 0 10px rgba(183, 239, 22, 0); }
+}
+
+@keyframes bb-fx-input-scan {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bb-fx-fade {
+  from { opacity: 0; }
+}
+
+@keyframes bb-fx-deploy {
+  0% { opacity: 0; transform: scale(0.92) translateY(14px); filter: brightness(2) blur(4px); clip-path: inset(48% 0 48% 0); }
+  60% { clip-path: inset(0 0 0 0); }
+  100% { opacity: 1; transform: none; filter: none; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes bb-fx-loader-ping {
+  0% { transform: scale(0.85); opacity: 0.8; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@media (max-width: 640px) {
+  .bb-fx-radar { opacity: 0.35; }
+  .bb-fx-grain { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bb-fx-embers,
+  .bb-fx-radar,
+  .bb-fx-grain,
+  .bb-fx-bursts,
+  .bb-fx-reticle {
+    display: none !important;
+  }
+
+  .bb-fx-scan,
+  main h1,
+  main h1:hover,
+  main :is(h1, h2) span,
+  span[class*="rounded-full"],
+  :is(a, button),
+  :is(input, textarea),
+  div[class~="fixed"][class~="inset-0"],
+  div[class~="fixed"][class~="inset-0"] > :first-child,
+  .bb-loader-orbit::after {
+    animation: none !important;
+  }
+}
+
+@media print {
+  .bb-fx-root > * {
+    display: none !important;
+  }
+}

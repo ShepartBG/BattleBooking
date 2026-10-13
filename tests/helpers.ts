@@ -71,7 +71,7 @@ export async function acceptCookies(page: Page) {
 
 export async function settle(page: Page) {
   await page.waitForLoadState("domcontentloaded");
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(500);
   await acceptCookies(page);
 }
 

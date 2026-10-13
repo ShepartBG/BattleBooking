@@ -1,5 +1,6 @@
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
+import MissionCountdown from "@/components/public/MissionCountdown";
 
 type HeroProps = {
   title: string;
@@ -18,6 +19,9 @@ type HeroProps = {
   logoScale?: number;
   logoX?: number;
   logoY?: number;
+  /** Raw game date/time (YYYY-MM-DD / HH:MM) for the mission countdown */
+  countdownDate?: string;
+  countdownTime?: string;
 };
 
 export default function Hero({
@@ -37,6 +41,8 @@ export default function Hero({
   logoScale = 1,
   logoX = 0,
   logoY = 0,
+  countdownDate,
+  countdownTime,
 }: HeroProps) {
   const hasSocials = Boolean(facebook || instagram || tiktok || phone);
 
@@ -94,6 +100,8 @@ export default function Hero({
             <InfoPill label="Час" value={`🕒 ${time}`} />
             <InfoPill label="Локация" value={location} isLocation />
           </div>
+
+          {countdownDate && <MissionCountdown date={countdownDate} time={countdownTime} />}
         </div>
       </div>
     </section>

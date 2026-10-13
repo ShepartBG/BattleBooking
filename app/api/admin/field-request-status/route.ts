@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const existingUser = existingUsers.users.find(
+      const existingUser = (existingUsers.users as Array<{ email?: string }>).find(
         (user) => user.email?.trim().toLowerCase() === email,
       );
 

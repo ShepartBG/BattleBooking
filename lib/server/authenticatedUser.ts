@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isOwnerEmail } from "@/lib/access";
+import { getOrganizerAccess } from "@/lib/server/organizerAccess";
 
 export async function getAuthenticatedUser(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,5 +14,11 @@ export async function getAuthenticatedUser(request: Request) {
   let admin: any;
   try { admin = getSupabaseAdmin(); } catch { admin = authClient; }
   const email = data.user.email.toLowerCase();
-  return { user: { ...data.user, email }, admin, isOwner: isOwnerEmail(email), error: null };
+  const isOwner = isOwnerEmail(email);
+  // A valid login is not enough: suspended / expired / unapproved organizers are refused server-side too.
+  if (!isOwner) {
+    const access = await getOrganizerAccess(email, admin);
+    if (!access.allowed) return { user: null, admin: null, isOwner: false, error: access.message };
+  }
+  return { user: { ...data.user, email }, admin, isOwner, error: null };
 }

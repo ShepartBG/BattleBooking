@@ -39,18 +39,22 @@ export async function GET() {
       gameIds.length
         ? admin
             .from("registrations")
-            .select("game_id")
+            .select("game_id,participation_type")
             .in("game_id", gameIds)
             .eq("status", "active")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
     const registeredCountByGame = new Map<string, number>();
+    const rentalCountByGame = new Map<string, number>();
     if (!registrationsResult.error && Array.isArray(registrationsResult.data)) {
       for (const registration of registrationsResult.data as any[]) {
         const gameId = String(registration.game_id || "");
         if (!gameId) continue;
         registeredCountByGame.set(gameId, (registeredCountByGame.get(gameId) || 0) + 1);
+        if (registration.participation_type === "rental") {
+          rentalCountByGame.set(gameId, (rentalCountByGame.get(gameId) || 0) + 1);
+        }
       }
     }
 
@@ -60,6 +64,7 @@ export async function GET() {
         games: games.map((game: any) => ({
           ...game,
           registered_count: registeredCountByGame.get(String(game.id)) || 0,
+          rental_count: rentalCountByGame.get(String(game.id)) || 0,
           fieldSettings: game.field_id ? fieldProfiles[String(game.field_id)] : undefined,
         })),
       },

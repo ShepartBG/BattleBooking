@@ -1,10 +1,10 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import PublicShell from "@/components/public/PublicShell";
 import GameCard from "@/components/public/GameCard";
-import BattleBookingLoader from "@/components/BattleBookingLoader";
 import { FieldSettings } from "@/lib/fieldConfig";
+import { loadPublicGames } from "@/lib/server/publicPageData";
+
+// Rendered on the server on every request so content is in the HTML (fast first paint, SEO).
+export const dynamic = "force-dynamic";
 
 type Game = {
   id: string;
@@ -18,33 +18,11 @@ type Game = {
   field_id: string | null;
   fieldSettings?: FieldSettings;
   registered_count?: number;
+  rental_count?: number;
 };
 
-export default function GamesPage() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadGames() {
-      setLoading(true);
-
-      const gamesResponse = await fetch("/api/public-games", { cache: "no-store" }).catch(() => null);
-
-      let nextGames: Game[] = [];
-
-      if (gamesResponse?.ok) {
-        const result = await gamesResponse.json().catch(() => null);
-        if (result?.ok && Array.isArray(result.games)) {
-          nextGames = result.games as Game[];
-        }
-      }
-
-      setGames(nextGames);
-      setLoading(false);
-    }
-
-    loadGames();
-  }, []);
+export default async function GamesPage() {
+  const games = await loadPublicGames<Game>();
 
   return (
     <PublicShell>
@@ -63,9 +41,7 @@ export default function GamesPage() {
         </div>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          {loading ? (
-            <div className="col-span-full"><BattleBookingLoader variant="section" title="ЗАРЕЖДАТ СЕ ИГРИТЕ..." subtitle="Проверяваме активните записвания" /></div>
-          ) : games.length > 0 ? (
+          {games.length > 0 ? (
             games.map((game) => {
               const fieldSettings = game.fieldSettings;
 
@@ -87,6 +63,7 @@ export default function GamesPage() {
                   logoX={fieldSettings?.logoX}
                   logoY={fieldSettings?.logoY}
                   registeredCount={game.registered_count || 0}
+                  rentalCount={game.rental_count || 0}
                 />
               );
             })

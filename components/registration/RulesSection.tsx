@@ -16,7 +16,12 @@ export default function RulesSection({
   onAcceptedPrivacyChange,
 }: RulesSectionProps) {
   return (
-    <div className="rounded-2xl border border-lime-400/25 bg-lime-400/10 p-3">
+    <div className="relative rounded-2xl border border-lime-400/25 bg-lime-400/10 p-3">
+      {acceptedRules && acceptedPrivacy && (
+        <span className="bb-stamp bb-approved-stamp" aria-label="Декларацията е одобрена">
+          Одобрено
+        </span>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-lime-400/20 text-base">
           📄

@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import FloatingHomeButton from "@/components/brand/FloatingHomeButton";
 import CookieBanner from "@/components/CookieBanner";
+import BattleFX from "@/components/fx/BattleFX";
 import { FeedbackProvider } from "@/components/ui/FeedbackProvider";
 import "react-datepicker/dist/react-datepicker.css";
 import "./globals.css";
+import "./fx.css";
+import "./battle-ui.css";
 
 export const metadata: Metadata = {
   title: "BattleBooking.bg",
@@ -31,6 +34,7 @@ export default function RootLayout({
           {children}
           <CookieBanner />
           <FloatingHomeButton />
+          <BattleFX />
         </FeedbackProvider>
       </body>
     </html>

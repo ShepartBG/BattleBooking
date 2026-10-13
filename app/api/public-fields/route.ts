@@ -138,22 +138,27 @@ async function loadPublicGamesForField(client: SupabaseLike, fieldId?: string | 
 
   const registrationsResult = await client
     .from("registrations")
-    .select("game_id")
+    .select("game_id,participation_type")
     .in("game_id", gameIds)
     .eq("status", "active");
 
   const registeredCountByGame = new Map<string, number>();
+    const rentalCountByGame = new Map<string, number>();
   if (!registrationsResult.error && Array.isArray(registrationsResult.data)) {
     for (const registration of registrationsResult.data as any[]) {
       const gameId = String(registration.game_id || "");
       if (!gameId) continue;
       registeredCountByGame.set(gameId, (registeredCountByGame.get(gameId) || 0) + 1);
+      if (registration.participation_type === "rental") {
+        rentalCountByGame.set(gameId, (rentalCountByGame.get(gameId) || 0) + 1);
+      }
     }
   }
 
   return games.map((game: any) => ({
     ...game,
     registered_count: registeredCountByGame.get(String(game.id)) || 0,
+    rental_count: rentalCountByGame.get(String(game.id)) || 0,
   }));
 }
 

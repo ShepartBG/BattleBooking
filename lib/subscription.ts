@@ -36,15 +36,23 @@ export function buildTrialDates(now = new Date()) {
 
 export const PAID_SUBSCRIPTION_DAYS = 30;
 
+// Date-only values are stored as UTC calendar dates (toDateOnly uses toISOString),
+// so renewal math must stay in UTC; local midnight would lose a day east of UTC.
+function addUtcDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
 export function buildRenewalDates(currentValidUntil?: string | null, now = new Date()) {
   const today = toDateOnly(now);
   const cleanCurrent = String(currentValidUntil || "").slice(0, 10);
   const base = cleanCurrent && cleanCurrent >= today
-    ? new Date(`${cleanCurrent}T00:00:00`)
-    : new Date(`${today}T00:00:00`);
+    ? new Date(`${cleanCurrent}T00:00:00Z`)
+    : new Date(`${today}T00:00:00Z`);
 
-  const validUntil = addDays(base, PAID_SUBSCRIPTION_DAYS);
-  const graceUntil = addDays(validUntil, GRACE_DAYS);
+  const validUntil = addUtcDays(base, PAID_SUBSCRIPTION_DAYS);
+  const graceUntil = addUtcDays(validUntil, GRACE_DAYS);
 
   return {
     subscriptionValidUntil: toDateOnly(validUntil),

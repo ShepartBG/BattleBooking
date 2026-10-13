@@ -18,6 +18,7 @@ type Game = {
   status: string;
   description?: string | null;
   registered_count?: number;
+  rental_count?: number;
 };
 
 export default function FieldPage() {
@@ -249,6 +250,7 @@ export default function FieldPage() {
                     logoX={fieldSettings.logoX}
                     logoY={fieldSettings.logoY}
                     registeredCount={game.registered_count || 0}
+                    rentalCount={game.rental_count || 0}
                   />
                 ))
               ) : (

@@ -1,3 +1,5 @@
+import AmmoBar from "@/components/public/AmmoBar";
+
 type Props = {
   totalPlayers: number;
   rentalPlayers: number;
@@ -39,6 +41,10 @@ export default function LiveInfoPanel({
         <SmallStat label="Записани" value={totalPlayers} />
         <SmallStat label="Под наем" value={rentalPlayers} />
         <SmallStat label="Собствено" value={ownPlayers} />
+      </div>
+
+      <div className="mt-3">
+        <AmmoBar max={Math.max(0, freeRentalSets) + rentalPlayers} used={rentalPlayers} compact />
       </div>
 
       <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">

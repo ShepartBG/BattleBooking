@@ -10,6 +10,8 @@ import LiveInfoPanel from "@/components/home/LiveInfoPanel";
 import SuccessScreen from "@/components/home/SuccessScreen";
 import NoActiveGame from "@/components/home/NoActiveGame";
 import RulesModal from "@/components/home/RulesModal";
+import RentalArmory from "@/components/registration/RentalArmory";
+import { useBattleBookingDialog } from "@/components/ui/useBattleBookingDialog";
 import PublicShell from "@/components/public/PublicShell";
 import LoadingScreen from "@/components/LoadingScreen";
 import { DEFAULT_FIELD_SETTINGS, FieldSettings } from "@/lib/fieldConfig";
@@ -70,6 +72,8 @@ export default function PublicGamePage() {
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [fieldSettings, setFieldSettings] = useState<FieldSettings>(DEFAULT_FIELD_SETTINGS);
+  const [successParticipation, setSuccessParticipation] = useState("");
+  const { Dialog, bbAlert } = useBattleBookingDialog();
 
   const freeRentalSets = (game?.max_rental_sets ?? 0) - rentalPlayers;
   const ownPlayers = totalPlayers - rentalPlayers;
@@ -92,7 +96,7 @@ export default function PublicGamePage() {
     const result = await response.json().catch(() => null);
 
     if (!response.ok || !result?.ok) {
-      alert(result?.error || "Грешка при зареждане на играта.");
+      bbAlert(result?.error || "Грешка при зареждане на играта.");
       setGameLoading(false);
       return;
     }
@@ -111,14 +115,14 @@ export default function PublicGamePage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!game) return alert("В момента няма активна игра за записване.");
+    if (!game) return bbAlert("В момента няма активна игра за записване.");
     if (game.status !== "active")
-      return alert("Регистрацията за тази игра е затворена.");
+      return bbAlert("Регистрацията за тази игра е затворена.");
     if (!rulesRead || !acceptedRules || !acceptedPrivacy)
-      return alert("Първо прочетете инструктажа и приемете условията за обработка на данните.");
+      return bbAlert("Първо прочетете инструктажа и приемете условията за обработка на данните.");
 
     if (hasRecentBrowserRegistration(game.id)) {
-      return alert(
+      return bbAlert(
         "От този браузър вече има направена регистрация за тази игра през последните 24 часа. Ако смятате, че това е грешка, свържете се с организатора.",
       );
     }
@@ -131,7 +135,7 @@ export default function PublicGamePage() {
 
     if (participationType === "rental" && freeRentalSets <= 0) {
       setLoading(false);
-      return alert("Всички комплекти под наем са резервирани.");
+      return bbAlert("Всички комплекти под наем са резервирани.");
     }
 
     const response = await fetch("/api/registrations", {
@@ -152,10 +156,11 @@ export default function PublicGamePage() {
     setLoading(false);
 
     if (!response.ok) {
-      return alert(result?.error || "Грешка при записване. Опитай пак.");
+      return bbAlert(result?.error || "Грешка при записване. Опитай пак.", "Записването не е успешно");
     }
 
     saveBrowserRegistration(game.id);
+    setSuccessParticipation(participationType === "rental" ? "Комплект под наем" : "Собствено оборудване");
     await loadGame(true);
     setSuccessCode(result.code);
   }
@@ -171,6 +176,11 @@ export default function PublicGamePage() {
           logoScale={fieldSettings.logoScale}
           logoX={fieldSettings.logoX}
           logoY={fieldSettings.logoY}
+          gameTitle={game?.title}
+          date={game ? formatDate(game.game_date) : undefined}
+          time={game?.game_time?.slice(0, 5)}
+          location={game?.location}
+          participation={successParticipation}
         />
       </PublicShell>
     );
@@ -183,6 +193,7 @@ export default function PublicGamePage() {
   if (!game) {
     return (
       <PublicShell>
+        {Dialog}
         <NoActiveGame />
       </PublicShell>
     );
@@ -193,6 +204,7 @@ export default function PublicGamePage() {
   if (!isGameStillPublic(game)) {
     return (
       <PublicShell>
+        {Dialog}
         <NoActiveGame />
       </PublicShell>
     );
@@ -201,6 +213,7 @@ export default function PublicGamePage() {
   return (
     <PublicShell>
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-5 md:px-5">
+        {Dialog}
         <Hero
           title={game.title}
           date={formatDate(game.game_date)}
@@ -218,6 +231,8 @@ export default function PublicGamePage() {
             logoScale={fieldSettings.logoScale}
             logoX={fieldSettings.logoX}
             logoY={fieldSettings.logoY}
+          countdownDate={isPostponed ? undefined : game.game_date}
+          countdownTime={game.game_time}
         />
 
         {isPostponed ? (
@@ -250,6 +265,14 @@ export default function PublicGamePage() {
               phone={fieldSettings.phone}
             />
           </div>
+        )}
+
+        {!isPostponed && (
+          <RentalArmory
+            maxRentalSets={game.max_rental_sets}
+            rentalPlayers={rentalPlayers}
+            rentalPrice={fieldSettings.rentalPrice}
+          />
         )}
 
         <StatsCards

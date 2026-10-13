@@ -21,12 +21,19 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     actionTimeout: 10_000,
+    // FX layer (components/fx/BattleFX.tsx) turns itself off for reduced motion -> stable clicks
+    contextOptions: { reducedMotion: "reduce" },
     navigationTimeout: 20_000,
   },
   projects: [
     {
       name: "setup",
       testMatch: /auth\.setup\.ts/,
+      testIgnore: /owner-auth\.setup\.ts/,
+    },
+    {
+      name: "owner-setup",
+      testMatch: /owner-auth\.setup\.ts/,
     },
     {
       name: "chromium",
@@ -35,7 +42,47 @@ export default defineConfig({
         storageState: "playwright/.auth/admin.json",
       },
       dependencies: ["setup"],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /owner-auth\.setup\.ts/, /owner\.spec\.ts/, /lifecycle\.spec\.ts/, /extended\.spec\.ts/],
+    },
+    {
+      name: "owner",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "playwright/.auth/owner.json",
+      },
+      dependencies: ["owner-setup"],
+      testMatch: /owner\.spec\.ts/,
+    },
+    {
+      // Full flow: access request -> approval -> setup -> game -> player registration.
+      // Needs .env.local too (service-role key for cleanup): npm run test:browser:lifecycle
+      name: "lifecycle",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["owner-setup"],
+      testMatch: /lifecycle\.spec\.ts/,
+    },
+    {
+      // Uploads, game edit/postpone/close/expiry, cancel player, subscriptions, shops/events.
+      name: "extended",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["owner-setup"],
+      testMatch: /extended\.spec\.ts/,
+    },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: /public\.spec\.ts/,
+    },
+    {
+      // Safari engine
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+      testMatch: /public\.spec\.ts/,
+    },
+    {
+      name: "webkit-iphone",
+      use: { ...devices["iPhone 13"] },
+      testMatch: /public\.spec\.ts/,
     },
     {
       name: "mobile",
@@ -44,7 +91,7 @@ export default defineConfig({
         storageState: "playwright/.auth/admin.json",
       },
       dependencies: ["setup"],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /owner-auth\.setup\.ts/, /owner\.spec\.ts/, /lifecycle\.spec\.ts/, /extended\.spec\.ts/],
     },
   ],
   webServer: isLocal

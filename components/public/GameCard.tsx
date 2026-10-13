@@ -1,6 +1,7 @@
 import Link from "next/link";
 import FieldLogoFrame from "@/components/brand/FieldLogoFrame";
 import { isUrlLocation, normalizeLocationUrl, shortLocationLabel } from "@/utils/location";
+import AmmoBar, { getSeatState, LastSeatsBadge } from "@/components/public/AmmoBar";
 
 type GameStatus = "active" | "closed" | "postponed" | string;
 
@@ -20,6 +21,7 @@ type GameCardProps = {
   logoX?: number;
   logoY?: number;
   registeredCount?: number;
+  rentalCount?: number;
 };
 
 function formatDate(date: string) {
@@ -71,21 +73,39 @@ export default function GameCard({
   logoX = 0,
   logoY = 0,
   registeredCount = 0,
+  rentalCount = 0,
 }: GameCardProps) {
   const statusView = getStatusView(status);
+  const seats = getSeatState(maxRentalSets, rentalCount);
+  const dossierNo = id.replace(/[^a-z0-9]/gi, "").slice(0, 4).toUpperCase();
+  const stamp = status === "postponed" ? "ОТЛОЖЕНА" : status === "closed" ? "АРХИВ" : "СЕКРЕТНО";
 
   return (
-    <article className={`rounded-[1.75rem] border bg-black/60 p-4 sm:rounded-[2rem] sm:p-5 backdrop-blur-xl transition duration-300 hover:-translate-y-1 ${
+    <article className={`bb-dossier relative mt-6 rounded-[1.75rem] border bg-black/60 p-4 sm:rounded-[2rem] sm:p-5 backdrop-blur-xl transition duration-300 hover:-translate-y-1 ${
       status === "postponed"
         ? "border-red-500/25 hover:border-red-400/55 hover:shadow-[0_0_55px_rgba(239,68,68,0.14)]"
         : "border-white/10 hover:border-[#95c900]/45 hover:shadow-[0_0_55px_rgba(149,201,0,0.14)]"
     }`}>
+      <span className="bb-dossier-tab" aria-hidden="true">Досие № {dossierNo}</span>
+      <span className={`bb-stamp bb-dossier-stamp ${status === "postponed" ? "is-red" : ""}`} aria-hidden="true">{stamp}</span>
+
+      <div className="bb-dossier-cover" aria-hidden="true">
+        <span className="bb-dossier-cover-label">Военно досие · {fieldName}</span>
+        <span className={`bb-stamp bb-dossier-cover-stamp ${status === "postponed" ? "is-red" : ""}`}>{stamp}</span>
+        <span className="bb-dossier-cover-title">{title}</span>
+        <span className="bb-dossier-cover-meta">📅 {formatDate(date)} · 🕒 {time?.slice(0, 5)}</span>
+        <span className="bb-dossier-cover-hint">Посочи, за да отвориш ↗</span>
+      </div>
+
       <div className="flex items-center gap-3">
         <FieldLogoFrame src={fieldLogo} alt={fieldName} size="sm" fit={logoFit} scale={logoScale} x={logoX} y={logoY} />
         <div className="min-w-0">
-          <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${statusView.className}`}>
-            {statusView.label}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${statusView.className}`}>
+              {statusView.label}
+            </span>
+            {status === "active" && seats.low && <LastSeatsBadge />}
+          </div>
           <p className="mt-2 truncate text-sm font-black text-white">{fieldName}</p>
         </div>
       </div>
@@ -117,6 +137,12 @@ export default function GameCard({
         <Info label="Локация" value={location} isLocation />
         <Info label="Наеми" value={`🎒 ${maxRentalSets}`} />
       </div>
+
+      {status === "active" && seats.total > 0 && (
+        <div className="mt-4">
+          <AmmoBar max={maxRentalSets} used={rentalCount} compact showBadge={false} />
+        </div>
+      )}
 
       <div className="mt-4 flex min-h-12 items-center justify-between rounded-2xl border border-[#95c900]/20 bg-[#95c900]/[0.08] px-4 py-3">
         <span className="text-[10px] font-black uppercase tracking-[0.20em] text-zinc-500">
