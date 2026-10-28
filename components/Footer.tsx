@@ -1,3 +1,5 @@
+import SiteSignature from "@/components/SiteSignature";
+
 export default function Footer() {
   return (
     <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-10">
@@ -25,6 +27,7 @@ export default function Footer() {
           </div>
         </div>
       </div>
+      <SiteSignature />
     </footer>
   );
 }
